@@ -7,6 +7,8 @@
         public const string MAINBRANCHNAME = "main";
         public const string SecurityNamespaceGitRepo = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87";
         public const string SETUP_REPO = "SetupRepositoryFct";
+        public const string PROJECT_PREFIX = "AZP-{0}_";
+        public const string PROCESS_TEMPLATE_ID = "08707d34-379e-45bd-9824-8e7d6b111536";
     }
 
     public struct GitPermissions

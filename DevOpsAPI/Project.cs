@@ -78,6 +78,41 @@
 
         }
 
+        public static async Task<string> CreateProjectsAsync(Url _organization, 
+            string projectName, 
+            string projectDescription,
+            string processTemplateId,
+            string pat)
+        {
+            var project = new
+            {
+                name = projectName,
+                description = projectDescription,
+                capabilities = new
+                {
+                    versioncontrol = new
+                    {
+                        sourceControlType="Git"
+                    },
+                    processTemplate= new
+                    {
+                        templateTypeId=processTemplateId
+                    }
+                }
+            };
+
+            var queryResponse = await $"{_organization}"
+                .AppendPathSegment("_apis/projects")
+                .SetQueryParam("api-version", "6.0")
+                .WithBasicAuth(string.Empty, pat)
+                .AllowAnyHttpStatus()
+                .PostJsonAsync(project);
+
+            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
+            else
+                return string.Empty;
+        }
 
     }
 }

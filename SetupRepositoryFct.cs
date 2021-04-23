@@ -9,6 +9,8 @@ namespace DevOpsManagement
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Extensions.Logging;
     using DevOpsAPI;
+    using DevOpsManagement.Tools;
+
     public class SetupRepositoryFct
     {
         private static Appsettings _config;
@@ -38,10 +40,11 @@ namespace DevOpsManagement
             string adminDescriptor;
             string mainBranchRefId;
             string projectCollectionAdminDescriptor;
+            string projectDescription = "placeholder for description";
 
             var project=JsonDocument.Parse(createProjectMessage);
 
-            var projectName = project.RootElement.GetProperty("project").GetString();
+            var projectName = project.RootElement.GetProperty("project").GetString().Trim().Replace(" ","_");
             var repoName = project.RootElement.GetProperty("repo").GetString();
 
             if (String.IsNullOrEmpty(projectName))
@@ -52,19 +55,39 @@ namespace DevOpsManagement
             {
                 throw new ApplicationException("Missing repository name - abort");
             }
-
-
-            // Get current Project
-            var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectName, _pat);
-            try
+            var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
+            
+            var projectNames = new List<string>();
+            foreach(var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
             {
-                projectId = currentProject.RootElement.GetProperty("id").GetString();
-                log.LogDebug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
+                projectNames.Add(projectNode.GetProperty("name").GetString());
             }
-            catch
+
+            var projectNameMatch = projectNames.FirstOrDefault<string>(p => p.Contains(projectName));
+            if (projectNameMatch!=null)
             {
-                throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
+                // Get current Project
+                var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectNameMatch, _pat);
+                try
+                {
+                    projectId = currentProject.RootElement.GetProperty("id").GetString();
+                    log.LogDebug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
+                }
+                catch
+                {
+                    throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
+                }
             }
+            else
+            {
+                // create new project
+                var nextId = projectNames.Count + 1; // todo: search for naming pattern/ highest id
+                var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
+                var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
+                // wait for operation to complete
+                // GET https://dev.azure.com/{organization}/_apis/operations/{operationId}?api-version=6.1-preview.1
+
+            };
 
             // Get Identity for Contributors
             var contributor = await Project.GetIdentityForGroupAsync(_organizationName, projectName, "Contributors", _pat);
