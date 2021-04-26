@@ -21,6 +21,22 @@
             else
                 return JsonDocument.Parse("{}");
         }
+        public static async Task<JsonDocument> GetProjectStatusAsync(Url _organization, string operationId, string pat)
+        {
+            // GET https://dev.azure.com/{organization}/_apis/operations/{operationId}?api-version=6.1-preview.1
+            var queryResponse = await $"{_organization}"
+                .AppendPathSegment("_apis/operations")
+                .AppendPathSegment(operationId)
+                .SetQueryParam("api-version", Constants.APIVERSION)
+                .WithBasicAuth(string.Empty, pat)
+                .AllowAnyHttpStatus()
+                .GetAsync();
+
+            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+            else
+                return JsonDocument.Parse("{}");
+        }
 
         public static async Task<JsonDocument> GetProjectByNameAsync(Url _organization, string projectName, string pat)
         {

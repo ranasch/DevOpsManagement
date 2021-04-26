@@ -10,16 +10,18 @@ namespace DevOpsManagement
     using Microsoft.Extensions.Logging;
     using DevOpsAPI;
     using DevOpsManagement.Tools;
+    using System.Threading;
 
-    public class SetupRepositoryFct
+    public class DevOpsSetupFct
     {
         private static Appsettings _config;
         private readonly string _organizationName;
         private readonly Uri _organizationUrl;
         private readonly string _pat;
         private readonly string _apiVersion;
+        private ILogger _log;
 
-        public SetupRepositoryFct(Appsettings settings)
+        public DevOpsSetupFct(Appsettings settings)
         {
             _config = settings;
             _organizationName = settings.VSTSOrganization;
@@ -29,102 +31,123 @@ namespace DevOpsManagement
         }
 
         [FunctionName(Constants.SETUP_REPO)]
-        public async Task SetupRepository([QueueTrigger(Constants.StorageQueueName)]string createProjectMessage, ILogger log)
+        public async Task SetupRepository([QueueTrigger(Constants.StorageQueueName)] string setupDevOpsMessage, ILogger log)
         {
-            log.LogInformation($"*** Function {Constants.SETUP_REPO} triggered with message {createProjectMessage} ***");
+            _log = log;
+            _log.LogInformation($"*** Function {Constants.SETUP_REPO} triggered with message {setupDevOpsMessage} ***");
 
             string projectId;
+            string projectDescription = "placeholder for description";
+
+            var queueItem = JsonDocument.Parse(setupDevOpsMessage);
+            var createType = queueItem.RootElement.GetProperty("createType").GetString();
+            var projectName = queueItem.RootElement.GetProperty("projectName").GetString().Trim().Replace(" ", "_");
+            var environment = queueItem.RootElement.GetProperty("environment").GetString();
+            var requestor = queueItem.RootElement.GetProperty("requestor").GetString();
+
+            if (String.IsNullOrEmpty(projectName))
+            {
+                throw new ApplicationException("Missing projectname - abort");
+            }
+
+            var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
+
+            var projectNames = new List<string>();
+            foreach (var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
+            {
+                projectNames.Add(projectNode.GetProperty("name").GetString());
+            }
+
+            var projectNameMatch = projectNames.FirstOrDefault<string>(p => p.Contains(projectName));
+
+            switch (createType)
+            {
+                case "Project":
+                    // create new project
+
+                    var nextId = projectNames.Count + 1; // todo: search for naming pattern/ highest id
+                    var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
+                    var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
+                    // todo: wait for operation to complete
+                    // GET https://dev.azure.com/{organization}/_apis/operations/{operationId}?api-version=6.1-preview.1
+
+                    var pending = true;
+                    do
+                    {
+                        var status = await Project.GetProjectStatusAsync(_organizationUrl, operationsId, _pat);
+                        Thread.Sleep(10000);
+                        projectId = "tbd";
+                    } while (pending);
+
+                    break;
+                case "Repository":
+                    var repoName = queueItem.RootElement.GetProperty("repo").GetString();
+
+                    if (String.IsNullOrEmpty(repoName))
+                    {
+                        throw new ApplicationException("Missing repository name - abort");
+                    }
+                    var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectNameMatch, _pat);
+                    try
+                    {
+                        projectId = currentProject.RootElement.GetProperty("id").GetString();
+                        log.LogDebug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
+                    }
+                    catch
+                    {
+                        throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
+                    }
+
+                    await CreateRepository(projectName, repoName, projectId);
+                    break;
+            };
+
+        }
+        private async Task CreateRepository(string projectName, string repoName, string projectId)
+        {
             string repoId;
             string contributorDescriptor;
             string readerDescriptor;
             string adminDescriptor;
             string mainBranchRefId;
             string projectCollectionAdminDescriptor;
-            string projectDescription = "placeholder for description";
-
-            var project=JsonDocument.Parse(createProjectMessage);
-
-            var projectName = project.RootElement.GetProperty("project").GetString().Trim().Replace(" ","_");
-            var repoName = project.RootElement.GetProperty("repo").GetString();
-
-            if (String.IsNullOrEmpty(projectName))
-            {
-                throw new ApplicationException("Missing projectname - abort");
-            }
-            if (String.IsNullOrEmpty(repoName))
-            {
-                throw new ApplicationException("Missing repository name - abort");
-            }
-            var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
-            
-            var projectNames = new List<string>();
-            foreach(var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
-            {
-                projectNames.Add(projectNode.GetProperty("name").GetString());
-            }
-
-            var projectNameMatch = projectNames.FirstOrDefault<string>(p => p.Contains(projectName));
-            if (projectNameMatch!=null)
-            {
-                // Get current Project
-                var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectNameMatch, _pat);
-                try
-                {
-                    projectId = currentProject.RootElement.GetProperty("id").GetString();
-                    log.LogDebug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
-                }
-                catch
-                {
-                    throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
-                }
-            }
-            else
-            {
-                // create new project
-                var nextId = projectNames.Count + 1; // todo: search for naming pattern/ highest id
-                var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
-                var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
-                // wait for operation to complete
-                // GET https://dev.azure.com/{organization}/_apis/operations/{operationId}?api-version=6.1-preview.1
-
-            };
 
             // Get Identity for Contributors
             var contributor = await Project.GetIdentityForGroupAsync(_organizationName, projectName, "Contributors", _pat);
             contributorDescriptor = contributor.RootElement.GetProperty("value").EnumerateArray().First().GetProperty("descriptor").GetString();
-            log.LogDebug($"Contributor descriptor = {contributorDescriptor}");
+            _log.LogDebug($"Contributor descriptor = {contributorDescriptor}");
 
             // Get Identity for Readers
             var reader = await Project.GetIdentityForGroupAsync(_organizationName, projectName, "Readers", _pat);
             readerDescriptor = reader.RootElement.GetProperty("value").EnumerateArray().First().GetProperty("descriptor").GetString();
-            log.LogDebug($"Reader descriptor = {readerDescriptor}");
+            _log.LogDebug($"Reader descriptor = {readerDescriptor}");
 
             // Get Identity for Project Admins
             var admins = await Project.GetIdentityForGroupAsync(_organizationName, projectName, "Project Administrators", _pat);
             adminDescriptor = admins.RootElement.GetProperty("value").EnumerateArray().First().GetProperty("descriptor").GetString();
-            log.LogDebug($"Project Administrators descriptor = {adminDescriptor}");
+            _log.LogDebug($"Project Administrators descriptor = {adminDescriptor}");
 
             // Get Identity for Project Collection Admins
             var collectionAdmins = await Project.GetIdentityForOrganizationAsync(_organizationName, "Project Collection Administrators", _pat);
             projectCollectionAdminDescriptor = collectionAdmins.RootElement.GetProperty("value").EnumerateArray().First().GetProperty("descriptor").GetString();
-            log.LogDebug($"Project Collection Administrators descriptor = {projectCollectionAdminDescriptor}");
+            _log.LogDebug($"Project Collection Administrators descriptor = {projectCollectionAdminDescriptor}");
 
             // Get or create Repository
             JsonDocument currentRepository = await Repository.GetRepositoryByNameAsync(_organizationUrl, projectName, repoName, _pat);
             try
             {
                 repoId = currentRepository.RootElement.GetProperty("id").GetString();
-                log.LogDebug($"Found existing Repo {currentRepository.RootElement.GetProperty("name").GetString()}, id: {repoId}");
+                _log.LogDebug($"Found existing Repo {currentRepository.RootElement.GetProperty("name").GetString()}, id: {repoId}");
             }
             catch (KeyNotFoundException)
             {
                 currentRepository = await Repository.CreateRepositoryAsync(_organizationUrl, projectId, repoName, _pat);
                 repoId = currentRepository.RootElement.GetProperty("id").GetString();
-                log.LogDebug($"Created new Repo {currentRepository.RootElement.GetProperty("name").GetString()}, id: {repoId}");
+                _log.LogDebug($"Created new Repo {currentRepository.RootElement.GetProperty("name").GetString()}, id: {repoId}");
             }
             // do initial commit
             var commit = await Repository.InitialCommitAsync(_organizationUrl, repoId, _pat);
-            log.LogDebug("Initial commit");
+            _log.LogDebug("Initial commit");
 
             // Create top branch
             var refIds = await Repository.GetGitRefs(_organizationUrl, projectId, repoId, _pat);
@@ -167,7 +190,7 @@ namespace DevOpsManagement
             // grant force push policy when pushing for project admins
             var resultforcePushAdmins = await Repository.SetACEforRepoAsync(_organizationUrl, projectId, repoId, "task", adminDescriptor, GitPermissions.FORCEPUSH, 0, _pat);
 
-            log.LogInformation($"*** Function {Constants.SETUP_REPO} completed successfully ***");
+            _log.LogInformation($"*** Function {Constants.SETUP_REPO} completed successfully ***");
         }
     }
 }
