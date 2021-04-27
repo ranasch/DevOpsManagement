@@ -8,6 +8,8 @@ namespace DevOpsManagement
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Configuration;
     using System;
+    using DevOpsManagement.DevOpsAPI;
+    using System.Collections.Generic;
 
     public class Startup: FunctionsStartup
     {
@@ -24,7 +26,10 @@ namespace DevOpsManagement
             {
                 PAT = config["PAT"],
                 VSTSApiVersion = config["VSTSApiVersion"],
-                VSTSOrganization = config["VSTSOrganization"]
+                VSTSOrganization = config["VSTSOrganization"],
+                ManagementProjectName = config["MANAGEMENT_PROJECT_NAME"],
+                ManagementProjectTeam = config["MANAGEMENT_PROJECT_TEAM_NAME"],
+                Environments = config["Environments"].Split(",") 
             };
             //var appSettings = config.GetSection("AppSettings").Get<Appsettings>();
             builder.Services.AddSingleton(appSettings);
@@ -35,6 +40,17 @@ namespace DevOpsManagement
             var qc = storageAccount.CreateCloudQueueClient();
             var queue = qc.GetQueueReference(Constants.StorageQueueName);
             queue.CreateIfNotExistsAsync(null, null).Wait();
+
+            // Seed AZID
+            Dictionary<string, int> environmentSeed = new Dictionary<string, int>();
+            foreach (var environment in appSettings.Environments)
+            {
+                var azidTask = Project.GetMaxAzIdForEnvironment(appSettings.VSTSOrganization, appSettings.ManagementProjectName, appSettings.ManagementProjectTeam, environment.Trim().ToLower(), appSettings.PAT);
+                var azid = azidTask.GetAwaiter().GetResult();
+                environmentSeed.Add(environment.Trim().ToLower(), azid);
+            }
+            var azidinstance = Tools.AzIdCreator.Instance;
+            azidinstance.EnvironmentSeed=environmentSeed;
         }
     }
 }

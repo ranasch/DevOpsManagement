@@ -42,7 +42,7 @@ namespace DevOpsManagement
             var queueItem = JsonDocument.Parse(setupDevOpsMessage);
             var createType = queueItem.RootElement.GetProperty("createType").GetString();
             var projectName = queueItem.RootElement.GetProperty("projectName").GetString().Trim().Replace(" ", "_");
-            var environment = queueItem.RootElement.GetProperty("environment").GetString();
+            var environment = queueItem.RootElement.GetProperty("environment").GetString().Trim().ToLower();
             var requestor = queueItem.RootElement.GetProperty("requestor").GetString();
 
             if (String.IsNullOrEmpty(projectName))
@@ -65,7 +65,7 @@ namespace DevOpsManagement
                 case "Project":
                     // create new project
 
-                    var nextId = projectNames.Count + 1; // todo: search for naming pattern/ highest id
+                    var nextId = AzIdCreator.Instance.NextAzId(environment);
                     var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
                     var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
                     // todo: wait for operation to complete

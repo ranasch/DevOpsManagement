@@ -2,9 +2,11 @@
 {
     using Flurl;
     using Flurl.Http;
+    using System;
+    using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
-
+   
     public static class Project
     {
         public static async Task<JsonDocument> GetProjectsAsync(Url _organization, string pat)
@@ -130,5 +132,64 @@
                 return string.Empty;
         }
 
+
+        public static async Task<JsonDocument> GetWorkItemById(string organizationName, string projectName, int workitemId, string pat)
+        {
+            // GET https://dev.azure.com/{organization}/{project}/_apis/wit/workitems/{id}?fields={fields}&asOf={asOf}&$expand={$expand}&api-version=6.1-preview.3
+            var queryResponse = await $"https://dev.azure.com/{organizationName}"
+               .AppendPathSegment(projectName)
+               .AppendPathSegment($"_apis/wit/workitems/{workitemId}")
+               .SetQueryParam("api-version", "6.0")
+               .WithBasicAuth(string.Empty, pat)
+               .AllowAnyHttpStatus()
+               .GetAsync();
+
+            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+            else
+                return JsonDocument.Parse("{}");
+        }
+
+        public static async Task<int> GetMaxAzIdForEnvironment(string organizationName, string projectName, string projectTeam, string environment, string pat)
+        {
+            var wiql = new
+            {
+                query = "SELECT [Custom.AZP_ID] \n" +
+            "FROM workitems \n" +
+            "WHERE [System.TeamProject] = @project \n" +
+            "       and [System.WorkItemType]=\"Project\" \n" +
+            $"       and [Custom.SW4ZFOrga]=\"{environment}\" \n" +
+            "ORDER BY [System.Id] DESC"
+            };
+
+                // POST https://dev.azure.com/{organization}/{project}/{team}/_apis/wit/wiql?timePrecision={timePrecision}&$top={$top}&api-version=4.1
+                var queryResponse = await $"https://dev.azure.com/{organizationName}"
+                   .AppendPathSegment(projectName)
+                   .AppendPathSegment(projectTeam)
+                   .AppendPathSegment($"_apis/wit/wiql")
+                   .SetQueryParam("$top", "1")
+                   .SetQueryParam("api-version", "6.0")
+                   .WithBasicAuth(string.Empty, pat)
+                   .AllowAnyHttpStatus()
+                   .PostJsonAsync(wiql);
+
+                var azid = 0;
+            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var jsonQueryResult = JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+                    var workItemWithmaxAzId = jsonQueryResult.RootElement.GetProperty("workItems").EnumerateArray().First().GetProperty("id").GetInt32();
+                    var workItem = await GetWorkItemById(organizationName, projectName, workItemWithmaxAzId, pat);
+                    azid = workItem.RootElement.GetProperty("fields").GetProperty("Custom.AZP_ID").GetInt32();
+                }
+                catch (InvalidOperationException ex)
+                { azid = 0; }                
+            }
+            else
+                return 0;
+
+            return azid;
+        }
     }
 }
