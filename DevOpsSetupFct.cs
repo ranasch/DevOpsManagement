@@ -37,12 +37,13 @@ namespace DevOpsManagement
             _log.LogInformation($"*** Function {Constants.SETUP_REPO} triggered with message {setupDevOpsMessage} ***");
 
             string projectId;
-            string projectDescription = "placeholder for description";
 
             var queueItem = JsonDocument.Parse(setupDevOpsMessage);
+            var workItemId = queueItem.RootElement.GetProperty("workItemId").GetInt32();
             var createType = queueItem.RootElement.GetProperty("createType").GetString();
             var projectName = queueItem.RootElement.GetProperty("projectName").GetString().Trim().Replace(" ", "_");
             var environment = queueItem.RootElement.GetProperty("environment").GetString().Trim().ToLower();
+            var projectDescription=queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().ToLower();
             var requestor = queueItem.RootElement.GetProperty("requestor").GetString();
 
             if (String.IsNullOrEmpty(projectName))
@@ -72,12 +73,53 @@ namespace DevOpsManagement
                     // GET https://dev.azure.com/{organization}/_apis/operations/{operationId}?api-version=6.1-preview.1
 
                     var pending = true;
+                    var resultStatus = "";
                     do
                     {
                         var status = await Project.GetProjectStatusAsync(_organizationUrl, operationsId, _pat);
-                        Thread.Sleep(10000);
-                        projectId = "tbd";
+                        resultStatus = status.RootElement.GetProperty("status").GetString();
+                        switch (resultStatus)
+                        {
+                            case "cancelled":
+                                pending = false;
+                                break;
+                            case "failed":
+                                pending = false;
+                                break;
+                            case "succeeded":
+                                pending = false;
+                                var project = await Project.GetProjectAsync(_organizationUrl, zfProjectName, _pat);
+                                projectId = project.RootElement.GetProperty("id").GetString();
+                                break;
+                            default:
+                                Thread.Sleep(5000); // wait for project creation
+                                break;
+                        }
                     } while (pending);
+
+                    var patchOperation = new[]
+                    {
+                        new
+                        {
+                            op="add",
+                            path="/fields/System.WorkItemType",
+                            value="Project"
+                        },
+                        new
+                        {
+                            op="add",
+                            path="/fields/System.State",
+                            value="Provisioned"
+                        },
+                        new
+                        {
+                            op="add",
+                            path="/fields/Custom.AZP_ID",
+                            value=$"{nextId}"
+                        }
+                    };
+                    var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
+                    // ToDO: Create Groups
 
                     break;
                 case "Repository":
