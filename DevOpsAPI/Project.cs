@@ -183,7 +183,7 @@
                 return JsonDocument.Parse("{}");
         }
 
-        public static async Task<int> GetMaxAzIdForEnvironment(string organizationName, string projectName, string projectTeam, string environment, string pat)
+        public static async Task<int> GetMaxAzIdForEnvironment(string organizationName, string projectName, string projectTeam, string pat)
         {
             var wiql = new
             {
@@ -191,8 +191,7 @@
             "FROM workitems \n" +
             "WHERE [System.TeamProject] = @project \n" +
             "       and [System.WorkItemType]=\"Project\" \n" +
-            $"       and [Custom.SW4ZFOrga]=\"{environment}\" \n" +
-            "ORDER BY [System.Id] DESC"
+            "ORDER BY [Custom.AZP_ID] DESC"
             };
 
                 // POST https://dev.azure.com/{organization}/{project}/{team}/_apis/wit/wiql?timePrecision={timePrecision}&$top={$top}&api-version=4.1
@@ -219,7 +218,7 @@
                 catch (InvalidOperationException ex)
                 { azid = 0; }                
             }
-            else
+            else // no az_id found --> start with 0
                 return 0;
 
             return azid;

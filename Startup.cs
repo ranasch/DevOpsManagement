@@ -28,8 +28,7 @@ namespace DevOpsManagement
                 VSTSApiVersion = config["VSTSApiVersion"],
                 VSTSOrganization = config["VSTSOrganization"],
                 ManagementProjectName = config["MANAGEMENT_PROJECT_NAME"],
-                ManagementProjectTeam = config["MANAGEMENT_PROJECT_TEAM_NAME"],
-                Environments = config["Environments"].Split(",") 
+                ManagementProjectTeam = config["MANAGEMENT_PROJECT_TEAM_NAME"]
             };
             //var appSettings = config.GetSection("AppSettings").Get<Appsettings>();
             builder.Services.AddSingleton(appSettings);
@@ -42,15 +41,11 @@ namespace DevOpsManagement
             queue.CreateIfNotExistsAsync(null, null).Wait();
 
             // Seed AZID
-            Dictionary<string, int> environmentSeed = new Dictionary<string, int>();
-            foreach (var environment in appSettings.Environments)
-            {
-                var azidTask = Project.GetMaxAzIdForEnvironment(appSettings.VSTSOrganization, appSettings.ManagementProjectName, appSettings.ManagementProjectTeam, environment.Trim().ToLower(), appSettings.PAT);
-                var azid = azidTask.GetAwaiter().GetResult();
-                environmentSeed.Add(environment.Trim().ToLower(), azid);
-            }
+
+            var azidTask = Project.GetMaxAzIdForEnvironment(appSettings.VSTSOrganization, appSettings.ManagementProjectName, appSettings.ManagementProjectTeam, appSettings.PAT);
+            var azid = azidTask.GetAwaiter().GetResult();
             var azidinstance = Tools.AzIdCreator.Instance;
-            azidinstance.EnvironmentSeed=environmentSeed;
+            azidinstance.EnvironmentSeed=azid;
         }
     }
 }
