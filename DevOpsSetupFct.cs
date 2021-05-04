@@ -42,8 +42,7 @@ namespace DevOpsManagement
             var workItemId = queueItem.RootElement.GetProperty("workItemId").GetInt32();
             var createType = queueItem.RootElement.GetProperty("createType").GetString();
             var projectName = queueItem.RootElement.GetProperty("projectName").GetString().Trim().Replace(" ", "_");
-            var environment = queueItem.RootElement.GetProperty("environment").GetString().Trim().ToLower();
-            var projectDescription=queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().ToLower();
+            var environment = queueItem.RootElement.GetProperty("environment").GetString().Trim().ToLower();            
             var requestor = queueItem.RootElement.GetProperty("requestor").GetString();
 
             if (String.IsNullOrEmpty(projectName))
@@ -57,48 +56,48 @@ namespace DevOpsManagement
             foreach (var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
             {
                 projectNames.Add(projectNode.GetProperty("name").GetString());
-            }
-
-            var projectNameMatch = projectNames.FirstOrDefault<string>(p => p.Contains(projectName));
+            }            
 
             switch (createType)
             {
                 case "Project":
-                    // create new project
-
-                    var nextId = AzIdCreator.Instance.NextAzId(environment);
-                    var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
-                    var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
-                    // todo: wait for operation to complete
-                    // GET https://dev.azure.com/{organization}/_apis/operations/{operationId}?api-version=6.1-preview.1
-
-                    var pending = true;
-                    var resultStatus = "";
-                    do
                     {
-                        var status = await Project.GetProjectStatusAsync(_organizationUrl, operationsId, _pat);
-                        resultStatus = status.RootElement.GetProperty("status").GetString();
-                        switch (resultStatus)
+                        // create new project
+
+                        var nextId = AzIdCreator.Instance.NextAzId(environment);
+                        var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().ToLower();
+                        var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
+                        var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
+                        // todo: wait for operation to complete
+                        // GET https://dev.azure.com/{organization}/_apis/operations/{operationId}?api-version=6.1-preview.1
+
+                        var pending = true;
+                        var resultStatus = "";
+                        do
                         {
-                            case "cancelled":
-                                pending = false;
-                                break;
-                            case "failed":
-                                pending = false;
-                                break;
-                            case "succeeded":
-                                pending = false;
-                                var project = await Project.GetProjectAsync(_organizationUrl, zfProjectName, _pat);
-                                projectId = project.RootElement.GetProperty("id").GetString();
-                                break;
-                            default:
-                                Thread.Sleep(5000); // wait for project creation
-                                break;
-                        }
-                    } while (pending);
+                            var status = await Project.GetProjectStatusAsync(_organizationUrl, operationsId, _pat);
+                            resultStatus = status.RootElement.GetProperty("status").GetString();
+                            switch (resultStatus)
+                            {
+                                case "cancelled":
+                                    pending = false;
+                                    break;
+                                case "failed":
+                                    pending = false;
+                                    break;
+                                case "succeeded":
+                                    pending = false;
+                                    var project = await Project.GetProjectAsync(_organizationUrl, zfProjectName, _pat);
+                                    projectId = project.RootElement.GetProperty("id").GetString();
+                                    break;
+                                default:
+                                    Thread.Sleep(5000); // wait for project creation
+                                    break;
+                            }
+                        } while (pending);
 
-                    var patchOperation = new[]
-                    {
+                        var patchOperation = new[]
+                        {
                         new
                         {
                             op="add",
@@ -118,30 +117,52 @@ namespace DevOpsManagement
                             value=$"{nextId}"
                         }
                     };
-                    var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
-                    // ToDO: Create Groups
+                        var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
+                        // ToDO: Create Groups
 
-                    break;
+                        break;
+                    }
                 case "Repository":
-                    var repoName = queueItem.RootElement.GetProperty("repo").GetString();
+                    {
+                        var repoName = queueItem.RootElement.GetProperty("repositoryName").GetString();
+                        var azp_id = queueItem.RootElement.GetProperty("azp_Id").GetInt32();
+                        var parentProjectName = string.Format(Constants.PROJECT_PREFIX, azp_id.ToString("D3")) + projectName; 
+                        var projectNameMatch = projectNames.FirstOrDefault<string>(p => p.Contains(parentProjectName));
+                        if (String.IsNullOrEmpty(repoName))
+                        {
+                            throw new ApplicationException("Missing repository name - abort");
+                        }
+                        var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectNameMatch, _pat);
+                        try
+                        {
+                            projectId = currentProject.RootElement.GetProperty("id").GetString();
+                            log.LogDebug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
+                        }
+                        catch
+                        {
+                            throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
+                        }
 
-                    if (String.IsNullOrEmpty(repoName))
-                    {
-                        throw new ApplicationException("Missing repository name - abort");
-                    }
-                    var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectNameMatch, _pat);
-                    try
-                    {
-                        projectId = currentProject.RootElement.GetProperty("id").GetString();
-                        log.LogDebug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
-                    }
-                    catch
-                    {
-                        throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
-                    }
+                        await CreateRepository(projectNameMatch, repoName, projectId);
 
-                    await CreateRepository(projectName, repoName, projectId);
-                    break;
+                        var patchOperation = new[]
+    {
+                        new
+                        {
+                            op="add",
+                            path="/fields/System.WorkItemType",
+                            value="Repository"
+                        },
+                        new
+                        {
+                            op="add",
+                            path="/fields/System.State",
+                            value="Provisioned"
+                        }
+                    };
+                        var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
+                        break;
+                    }
             };
 
         }
