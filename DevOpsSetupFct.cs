@@ -11,6 +11,7 @@ namespace DevOpsManagement
     using DevOpsAPI;
     using DevOpsManagement.Tools;
     using System.Threading;
+    using System.Text.RegularExpressions;
 
     public class DevOpsSetupFct
     {
@@ -19,6 +20,7 @@ namespace DevOpsManagement
         private readonly Uri _organizationUrl;
         private readonly string _pat;
         private readonly string _apiVersion;
+        private readonly string _managementProjectId;
         private ILogger _log;
 
         public DevOpsSetupFct(Appsettings settings)
@@ -28,6 +30,7 @@ namespace DevOpsManagement
             _pat = settings.PAT;
             _apiVersion = settings.VSTSApiVersion;
             _organizationUrl = new Uri($"https://dev.azure.com/{_organizationName}");
+            _managementProjectId = settings.ManagementProjectId;
         }
 
         [FunctionName(Constants.SETUP_REPO)]
@@ -41,13 +44,12 @@ namespace DevOpsManagement
             var queueItem = JsonDocument.Parse(setupDevOpsMessage);
             var workItemId = queueItem.RootElement.GetProperty("workItemId").GetInt32();
             var createType = queueItem.RootElement.GetProperty("createType").GetString();
-            var projectName = queueItem.RootElement.GetProperty("projectName").GetString().Trim().Replace(" ", "_");
+            var projectName = queueItem.RootElement.GetProperty("projectName").GetString();
+            var dataOwner1 = queueItem.RootElement.GetProperty("dataOwner1").GetString();
+            var dataOwner2 = queueItem.RootElement.GetProperty("dataOwner2").GetString();
             var requestor = queueItem.RootElement.GetProperty("requestor").GetString();
-
-            if (String.IsNullOrEmpty(projectName))
-            {
-                throw new ApplicationException("Missing projectname - abort");
-            }
+            var costCenter = queueItem.RootElement.GetProperty("costCenter").GetString();
+            var costCenterManager = queueItem.RootElement.GetProperty("costCenterManager").GetString();
 
             var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
 
@@ -55,16 +57,26 @@ namespace DevOpsManagement
             foreach (var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
             {
                 projectNames.Add(projectNode.GetProperty("name").GetString());
-            }            
+            }
 
             switch (createType)
             {
                 case "Project":
                     {
+                        // validate input
+                        if (!await ValidateProjectName(workItemId, createType, projectName))
+                        {
+                            return;
+                        }
+                        if (!await ValidateCostCenterManagerName(workItemId, createType, costCenterManager))
+                        {
+                            return;
+                        }
+
                         // create new project
 
                         var nextId = AzIdCreator.Instance.NextAzId();
-                        var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().ToLower();
+                        var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().Replace("<div>","").Replace("</div>","");
                         var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
                         var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
 
@@ -110,6 +122,12 @@ namespace DevOpsManagement
                         new
                         {
                             op="add",
+                            path="/fields/System.Title",
+                            value=$"{zfProjectName}"
+                        },
+                        new
+                        {
+                            op="add",
                             path="/fields/Custom.AZP_ID",
                             value=$"{nextId}"
                         }
@@ -123,7 +141,7 @@ namespace DevOpsManagement
                     {
                         var repoName = queueItem.RootElement.GetProperty("repositoryName").GetString();
                         var azp_id = queueItem.RootElement.GetProperty("azp_Id").GetInt32();
-                        var parentProjectName = string.Format(Constants.PROJECT_PREFIX, azp_id.ToString("D3")) + projectName; 
+                        var parentProjectName = string.Format(Constants.PROJECT_PREFIX, azp_id.ToString("D3")) + projectName;
                         var projectNameMatch = projectNames.FirstOrDefault<string>(p => p.Contains(parentProjectName));
                         if (String.IsNullOrEmpty(repoName))
                         {
@@ -163,6 +181,70 @@ namespace DevOpsManagement
                     }
             };
 
-        }        
+        }
+
+        private async Task<bool> ValidateProjectName(int workItemId, string createType, string projectName)
+        {
+            bool isValid = true;
+            if (String.IsNullOrEmpty(projectName))
+            {
+                await ReportError("Missing projectname - abort", _managementProjectId, createType, workItemId);                
+            }
+
+            Regex validChars = new Regex(@"[^a-zA-Z0-9_]", RegexOptions.Compiled);
+            var matches = validChars.Matches(projectName);
+
+            if(matches.Count>0)
+            {
+                // found invalid characters
+                await ReportError("Invalid characters in project name - change name and set to approved again for retry", _managementProjectId, createType, workItemId);
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        private async Task<bool> ValidateCostCenterManagerName(int workItemId, string createType, string costCenterManagerEmail)
+        {
+            bool isValid = true;
+            if (String.IsNullOrEmpty(costCenterManagerEmail))
+            {
+                await ReportError("Missing CostCenter Manager - abort", _managementProjectId, createType, workItemId);
+            }
+
+            Regex validChars = new Regex(@"^[a-zA-Z\.\-_]+@([a-zA-Z\.\-_]+\.)+[a-zA-Z]{2,4}$", RegexOptions.Compiled);
+            var matches = validChars.Matches(costCenterManagerEmail);
+
+            if (matches.Count > 0)
+            {
+                // found invalid characters
+                await ReportError("CostCenterManager is no valid email - verify email and set to approved again for retry", _managementProjectId, createType, workItemId);
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        private async Task ReportError(string errorMessage, string projectId, string workItemType, int workItemId)
+        {
+            var patchOperation = new[]
+{
+                        new
+                        {
+                            op="add",
+                            path="/fields/System.WorkItemType",
+                            value=$"{workItemType}"
+                        },
+                        new
+                        {
+                            op="add",
+                            path="/fields/System.State",
+                            value="Error"
+                        }
+                    };
+            
+            var updatedWorkItem = await Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
+            var result = await Project.AddWorkItemCommentAsync(_organizationUrl, projectId, workItemId, errorMessage, _pat);
+        }
     }
 }

@@ -30,6 +30,11 @@ namespace DevOpsManagement
                 ManagementProjectName = config["MANAGEMENT_PROJECT_NAME"],
                 ManagementProjectTeam = config["MANAGEMENT_PROJECT_TEAM_NAME"]
             };
+            // Initialisze ManagementProjectId
+            var managementProjectTask = Project.GetProjectAsync(appSettings.VSTSOrganizationUrl, appSettings.ManagementProjectName, appSettings.PAT);
+            var managementProjectId = managementProjectTask.GetAwaiter().GetResult();
+            appSettings.ManagementProjectId= managementProjectId.RootElement.GetProperty("id").GetString();
+
             //var appSettings = config.GetSection("AppSettings").Get<Appsettings>();
             builder.Services.AddSingleton(appSettings);
 
@@ -41,7 +46,6 @@ namespace DevOpsManagement
             queue.CreateIfNotExistsAsync(null, null).Wait();
 
             // Seed AZID
-
             var azidTask = Project.GetMaxAzIdForEnvironment(appSettings.VSTSOrganization, appSettings.ManagementProjectName, appSettings.ManagementProjectTeam, appSettings.PAT);
             var azid = azidTask.GetAwaiter().GetResult();
             var azidinstance = Tools.AzIdCreator.Instance;

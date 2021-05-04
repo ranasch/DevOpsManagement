@@ -42,18 +42,23 @@
         
         public static async Task<JsonDocument> GetProjectAsync(Url _organization, string projectName, string pat)
         {
-            // GET https://dev.azure.com/{organization}/_apis/projects/{projectId}/properties?api-version=6.1-preview.1
-            var queryResponse = await $"{_organization}"
-                .AppendPathSegment($"_apis/projects/{projectName}")
-                .SetQueryParam("api-version", Constants.APIVERSION)
-                .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
-                .GetAsync();
+            try
+            {
+                // GET https://dev.azure.com/{organization}/_apis/projects/{projectId}/properties?api-version=6.1-preview.1
+                var queryResponse = await $"{_organization}"
+                    .AppendPathSegment($"_apis/projects/{projectName}")
+                    .SetQueryParam("api-version", Constants.APIVERSION)
+                    .WithBasicAuth(string.Empty, pat)
+                    .AllowAnyHttpStatus()
+                    .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+                if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                    return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+                else
+                    return JsonDocument.Parse("{}");
+            }
+            catch (Exception ex) { return JsonDocument.Parse("{}"); }
+
         }
 
         public static async Task<JsonDocument> GetProjectByNameAsync(Url _organization, string projectName, string pat)
@@ -176,6 +181,26 @@
                .WithBasicAuth(string.Empty, pat)
                .AllowAnyHttpStatus()
                .PatchJsonAsync(patchOperation);
+
+            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+            else
+                return JsonDocument.Parse("{}");
+        }
+
+        public static async Task<JsonDocument> AddWorkItemCommentAsync(Url organization, string projectId, int workitemId, string comment, string pat)
+        {
+            // POST https://dev.azure.com/{organization}/{project}/_apis/wit/workItems/{workItemId}/comments?api-version=6.1-preview.3
+
+            var commentPayload =new { text = $"{comment}" };
+
+            var queryResponse = await organization
+               .AppendPathSegment(projectId)
+               .AppendPathSegment($"_apis/wit/workitems/{workitemId}/comments")
+               .SetQueryParam("api-version", "6.1-preview.3")
+               .WithBasicAuth(string.Empty, pat)
+               .AllowAnyHttpStatus()
+               .PostJsonAsync(commentPayload);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
                 return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
