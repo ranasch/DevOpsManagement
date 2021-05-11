@@ -12,6 +12,7 @@ namespace DevOpsManagement
     using DevOpsManagement.Tools;
     using System.Threading;
     using System.Text.RegularExpressions;
+    using System.Net.Mail;
 
     public class DevOpsSetupFct
     {
@@ -212,14 +213,15 @@ namespace DevOpsManagement
                 await ReportError("Missing CostCenter Manager - abort", _managementProjectId, createType, workItemId);
             }
 
-            Regex validChars = new Regex(@"^[a-zA-Z\.\-_]+@([a-zA-Z\.\-_]+\.)+[a-zA-Z]{2,4}$", RegexOptions.Compiled);
-            var matches = validChars.Matches(costCenterManagerEmail);
-
-            if (matches.Count > 0)
+            try
             {
-                // found invalid characters
-                await ReportError("CostCenterManager is no valid email - verify email and set to approved again for retry", _managementProjectId, createType, workItemId);
+                MailAddress m = new MailAddress(costCenterManagerEmail);
+                isValid = true;
+            }
+            catch(FormatException)
+            {
                 isValid = false;
+                await ReportError("CostCenterManager is no valid email - verify email and set to approved again for retry", _managementProjectId, createType, workItemId);
             }
 
             return isValid;
