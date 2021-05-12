@@ -6,7 +6,6 @@ namespace DevOpsManagement
     using System.Text.Json;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Extensions.Logging;
     using DevOpsAPI;
     using DevOpsManagement.Tools;
@@ -51,7 +50,6 @@ namespace DevOpsManagement
             var requestor = queueItem.RootElement.GetProperty("requestor").GetString();
             var costCenter = queueItem.RootElement.GetProperty("costCenter").GetString();
             var costCenterManager = queueItem.RootElement.GetProperty("costCenterManager").GetString();
-
             var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
 
             var projectNames = new List<string>();
@@ -78,6 +76,12 @@ namespace DevOpsManagement
 
                         var nextId = AzIdCreator.Instance.NextAzId();
                         var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().Replace("<div>", "").Replace("</div>", "");
+                        projectDescription = String.Concat(projectDescription, 
+                            $"\n\nRequest: {_organizationUrl}/{_managementProjectId}/_workitems/edit/{workItemId}",
+                            $"\nDataOwner: {dataOwner1}, {dataOwner2}",
+                            $"\nRequestor: {requestor}",
+                            $"\nCost Center: {costCenter}",
+                            $"\nCost Center Manager: {costCenterManager}");
                         var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
                         var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
 
@@ -138,7 +142,7 @@ namespace DevOpsManagement
                         // ToDO: Create Groups
 
 
-                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, projectId, workItemId, $"Project {zfProjectName} provisioned and ready to use.", requestor, _pat);
+                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project {_organizationUrl}/{zfProjectName} provisioned and ready to use.", requestor, _pat);
                         break;
                     }
                 case "Repository":
