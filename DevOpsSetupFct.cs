@@ -40,7 +40,7 @@ namespace DevOpsManagement
             _log = log;
             _log.LogInformation($"*** Function {Constants.SETUP_REPO} triggered with message {setupDevOpsMessage} ***");
 
-            string projectId;
+            string projectId="pending";
 
             var queueItem = JsonDocument.Parse(setupDevOpsMessage);
             var workItemId = queueItem.RootElement.GetProperty("workItemId").GetInt32();
@@ -84,7 +84,7 @@ namespace DevOpsManagement
                         var pending = true;
                         var resultStatus = "";
                         do
-                        {
+                        { // wait for project creation
                             var status = await Project.GetProjectStatusAsync(_organizationUrl, operationsId, _pat);
                             resultStatus = status.RootElement.GetProperty("status").GetString();
                             switch (resultStatus)
@@ -101,41 +101,44 @@ namespace DevOpsManagement
                                     projectId = project.RootElement.GetProperty("id").GetString();
                                     break;
                                 default:
-                                    Thread.Sleep(5000); // wait for project creation
+                                    Thread.Sleep(5000); 
                                     break;
                             }
                         } while (pending);
 
+                        // update workitem status
                         var patchOperation = new[]
                         {
-                        new
-                        {
-                            op="add",
-                            path="/fields/System.WorkItemType",
-                            value="Project"
-                        },
-                        new
-                        {
-                            op="add",
-                            path="/fields/System.State",
-                            value="Provisioned"
-                        },
-                        new
-                        {
-                            op="add",
-                            path="/fields/System.Title",
-                            value=$"{zfProjectName}"
-                        },
-                        new
-                        {
-                            op="add",
-                            path="/fields/Custom.AZP_ID",
-                            value=$"{nextId}"
-                        }
-                    };
+                            new
+                            {
+                                op="add",
+                                path="/fields/System.WorkItemType",
+                                value="Project"
+                            },
+                            new
+                            {
+                                op="add",
+                                path="/fields/System.State",
+                                value="Provisioned"
+                            },
+                            new
+                            {
+                                op="add",
+                                path="/fields/System.Title",
+                                value=$"{zfProjectName}"
+                            },
+                            new
+                            {
+                                op="add",
+                                path="/fields/Custom.AZP_ID",
+                                value=$"{nextId}"
+                            }
+                        };
                         var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
                         // ToDO: Create Groups
 
+
+                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, projectId, workItemId, $"Project {zfProjectName} provisioned and ready to use.", requestor, _pat);
                         break;
                     }
                 case "Repository":
