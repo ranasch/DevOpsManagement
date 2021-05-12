@@ -65,11 +65,11 @@ namespace DevOpsManagement
                 case "Project":
                     {
                         // validate input
-                        if (!await ValidateProjectName(workItemId, createType, projectName))
+                        if (!await ValidateProjectName(workItemId, createType, projectName, requestor))
                         {
                             return;
                         }
-                        if (!await ValidateCostCenterManagerName(workItemId, createType, costCenterManager))
+                        if (!await ValidateCostCenterManagerName(workItemId, createType, costCenterManager, requestor))
                         {
                             return;
                         }
@@ -77,7 +77,7 @@ namespace DevOpsManagement
                         // create new project
 
                         var nextId = AzIdCreator.Instance.NextAzId();
-                        var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().Replace("<div>","").Replace("</div>","");
+                        var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().Replace("<div>", "").Replace("</div>", "");
                         var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
                         var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
 
@@ -184,33 +184,33 @@ namespace DevOpsManagement
 
         }
 
-        private async Task<bool> ValidateProjectName(int workItemId, string createType, string projectName)
+        private async Task<bool> ValidateProjectName(int workItemId, string createType, string projectName, string requestor)
         {
             bool isValid = true;
             if (String.IsNullOrEmpty(projectName))
             {
-                await ReportError("Missing projectname - abort", _managementProjectId, createType, workItemId);                
+                await ReportError("Missing projectname - abort", _managementProjectId, requestor, createType, workItemId);
             }
 
             Regex validChars = new Regex(@"[^a-zA-Z0-9_]", RegexOptions.Compiled);
             var matches = validChars.Matches(projectName);
 
-            if(matches.Count>0)
+            if (matches.Count > 0)
             {
                 // found invalid characters
-                await ReportError("Invalid characters in project name - change name and set to approved again for retry", _managementProjectId, createType, workItemId);
+                await ReportError("Invalid characters in project name - change name and set to approved again for retry", _managementProjectId, requestor, createType, workItemId);
                 isValid = false;
             }
 
             return isValid;
         }
 
-        private async Task<bool> ValidateCostCenterManagerName(int workItemId, string createType, string costCenterManagerEmail)
+        private async Task<bool> ValidateCostCenterManagerName(int workItemId, string createType, string costCenterManagerEmail, string requestor)
         {
             bool isValid = true;
             if (String.IsNullOrEmpty(costCenterManagerEmail))
             {
-                await ReportError("Missing CostCenter Manager - abort", _managementProjectId, createType, workItemId);
+                await ReportError("Missing CostCenter Manager - abort", _managementProjectId, requestor, createType, workItemId);
             }
 
             try
@@ -218,35 +218,35 @@ namespace DevOpsManagement
                 MailAddress m = new MailAddress(costCenterManagerEmail);
                 isValid = true;
             }
-            catch(FormatException)
+            catch (FormatException)
             {
                 isValid = false;
-                await ReportError("CostCenterManager is no valid email - verify email and set to approved again for retry", _managementProjectId, createType, workItemId);
+                await ReportError("CostCenterManager is no valid email - verify email and set to approved again for retry", _managementProjectId, requestor, createType, workItemId);
             }
 
             return isValid;
         }
 
-        private async Task ReportError(string errorMessage, string projectId, string workItemType, int workItemId)
+        private async Task ReportError(string errorMessage, string projectId, string requestor, string workItemType, int workItemId)
         {
             var patchOperation = new[]
-{
-                        new
-                        {
-                            op="add",
-                            path="/fields/System.WorkItemType",
-                            value=$"{workItemType}"
-                        },
-                        new
-                        {
-                            op="add",
-                            path="/fields/System.State",
-                            value="Error"
-                        }
-                    };
-            
+            {
+                new
+                {
+                    op="add",
+                    path="/fields/System.WorkItemType",
+                    value=$"{workItemType}"
+                },
+                new
+                {
+                    op="add",
+                    path="/fields/System.State",
+                    value="Error"
+                }
+            };
+
             var updatedWorkItem = await Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
-            var result = await Project.AddWorkItemCommentAsync(_organizationUrl, projectId, workItemId, errorMessage, _pat);
+            var result = await Project.AddWorkItemCommentAsync(_organizationUrl, projectId, workItemId, errorMessage, requestor, _pat);
         }
     }
 }

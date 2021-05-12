@@ -188,11 +188,13 @@
                 return JsonDocument.Parse("{}");
         }
 
-        public static async Task<JsonDocument> AddWorkItemCommentAsync(Url organization, string projectId, int workitemId, string comment, string pat)
+        public static async Task<JsonDocument> AddWorkItemCommentAsync(Url organization, string projectId, int workitemId, string comment, string mention, string pat)
         {
             // POST https://dev.azure.com/{organization}/{project}/_apis/wit/workItems/{workItemId}/comments?api-version=6.1-preview.3
 
-            var commentPayload =new { text = $"{comment}" };
+            var commentPayload = new {
+                text = $"<div><a href =\"#\"data-vss-mention=\"version:2.0,63fab158-69d5-4bc4-8a5a-1033f1cf3ee5\">@{mention}</a>&nbsp;{comment}</div>"
+            };
 
             var queryResponse = await organization
                .AppendPathSegment(projectId)
