@@ -73,10 +73,9 @@ namespace DevOpsManagement
                         }
 
                         // create new project
-
                         var nextId = AzIdCreator.Instance.NextAzId();
                         var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().Replace("<div>", "").Replace("</div>", "");
-                        projectDescription = String.Concat(projectDescription, 
+                        projectDescription = String.Concat(projectDescription,
                             $"\n\nRequest: {_organizationUrl}/{_managementProjectId}/_workitems/edit/{workItemId}",
                             $"\nDataOwner: {dataOwner1}, {dataOwner2}",
                             $"\nRequestor: {requestor}",
@@ -105,44 +104,16 @@ namespace DevOpsManagement
                                     projectId = project.RootElement.GetProperty("id").GetString();
                                     break;
                                 default:
-                                    Thread.Sleep(5000); 
+                                    Thread.Sleep(5000);
                                     break;
                             }
                         } while (pending);
 
-                        // update workitem status
-                        var patchOperation = new[]
-                        {
-                            new
-                            {
-                                op="add",
-                                path="/fields/System.WorkItemType",
-                                value="Project"
-                            },
-                            new
-                            {
-                                op="add",
-                                path="/fields/System.State",
-                                value="Provisioned"
-                            },
-                            new
-                            {
-                                op="add",
-                                path="/fields/System.Title",
-                                value=$"{zfProjectName}"
-                            },
-                            new
-                            {
-                                op="add",
-                                path="/fields/Custom.AZP_ID",
-                                value=$"{nextId}"
-                            }
-                        };
-                        var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
-                        // ToDO: Create Groups
+                        // Create Project Groups
 
 
-                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project {_organizationUrl}/{zfProjectName} provisioned and ready to use.", requestor, _pat);
+                        UpdateWorkItemStatus(wiType.project, workItemId, nextId, zfProjectName);
+                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\"{zfProjectName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;
                     }
                 case "Repository":
@@ -169,28 +140,67 @@ namespace DevOpsManagement
                         //await CreateRepository(projectNameMatch, repoName, projectId);
                         await Repository.CreateCompliantRepositoryAsync(_organizationName, _organizationUrl, projectNameMatch, repoName, projectId, _pat);
 
-                        var patchOperation = new[]
-                        {
-                        new
-                        {
-                            op="add",
-                            path="/fields/System.WorkItemType",
-                            value="Repository"
-                        },
-                        new
-                        {
-                            op="add",
-                            path="/fields/System.State",
-                            value="Provisioned"
-                        }
-                    };
-                        var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
+                        UpdateWorkItemStatus(wiType.repo, workItemId);
                         break;
                     }
             };
 
         }
-
+        private enum wiType { project = 1, repo = 2 }
+        private void UpdateWorkItemStatus(wiType type, int workItemId, int nextId=-1, string zfProjectName="")
+        {
+            var patchOperation = new object();
+            if (type == wiType.project)
+            {
+                // update workitem status
+                patchOperation = new[]
+                {
+                            new
+                            {
+                                op="add",
+                                path="/fields/System.WorkItemType",
+                                value="Project"
+                            },
+                            new
+                            {
+                                op="add",
+                                path="/fields/System.State",
+                                value="Provisioned"
+                            },
+                            new
+                            {
+                                op="add",
+                                path="/fields/System.Title",
+                                value=$"{zfProjectName}"
+                            },
+                            new
+                            {
+                                op="add",
+                                path="/fields/Custom.AZP_ID",
+                                value=$"{nextId}"
+                            }
+                        };
+            }
+            else if (type == wiType.repo)
+            {
+                patchOperation = new[]
+                        {
+                    new
+                    {
+                        op = "add",
+                        path = "/fields/System.WorkItemType",
+                        value = "Repository"
+                    },
+                    new
+                    {
+                        op = "add",
+                        path = "/fields/System.State",
+                        value = "Provisioned"
+                    }
+                };
+            }
+            var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
+        }
         private async Task<bool> ValidateProjectName(int workItemId, string createType, string projectName, string requestor)
         {
             bool isValid = true;
@@ -211,7 +221,6 @@ namespace DevOpsManagement
 
             return isValid;
         }
-
         private async Task<bool> ValidateCostCenterManagerName(int workItemId, string createType, string costCenterManagerEmail, string requestor)
         {
             bool isValid = true;
@@ -233,7 +242,6 @@ namespace DevOpsManagement
 
             return isValid;
         }
-
         private async Task ReportError(string errorMessage, string projectId, string requestor, string workItemType, int workItemId)
         {
             var patchOperation = new[]

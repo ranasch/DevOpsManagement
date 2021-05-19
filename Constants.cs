@@ -11,6 +11,12 @@
         public const string PROCESS_TEMPLATE_ID = "08707d34-379e-45bd-9824-8e7d6b111536";
     }
 
+    public struct GroupScopeDescriptors
+    {
+        public const string ProjectScope = "scp.NTc0N2FkNjQtMTE3Ni00MzM4LWE1OGMtOTIyZGJiOGVlOTRk";
+
+    }
+
     public struct GitPermissions
     {
         public const long ADMINISTER = 1;
@@ -49,4 +55,31 @@
         public const string GIT_REPO_SETTINGS_POLICY_NAME = "0517f88d-4ec5-4343-9d26-9930ebd53069";   // GitRepositorySettingsPolicyName",
     }
 
+    internal struct ZfGroupNames
+    {
+        /// <summary>
+        /// member of Build Administrators, End Point Administrators, Deployment Group Administrators, Release Administrators
+        /// </summary>
+        public const string InfraMaint_Administrator = "AZG-{0}_InfraMaint_Administrator";
+        /// <summary>
+        /// member of Deployment Group Administrators, End Point Creators Groups. Note: Build Pipeline, Repos, Release Pipeline should be Read/Write 
+        /// </summary>
+        public const string InfraMaint_Developer = "AZG-{0}_InfraMaint_Developer";
+        /// <summary>
+        /// member of Contributors
+        /// </summary>
+        public const string ProjMaint_Developer = "AZG-{0}_ProjMaint_Developer";
+        /// <summary>
+        /// member of Project Administrators
+        /// </summary>
+        public const string ProjMaint_Adminstrator = "AZG-{0}_ProjMaint_Adminstrator";
+        /// <summary>
+        /// member of Build Administrators
+        /// </summary>
+        public const string ProjMaint_Deployer = "AZG-{0}_ProjMaint_Deployer";
+        /// <summary>
+        /// member of Readers
+        /// </summary>
+        public const string Proj_Consumer = "AZG-{0}_Proj_Consumer";
+    }
 }
