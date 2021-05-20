@@ -50,12 +50,22 @@ namespace DevOpsManagement
             var requestor = queueItem.RootElement.GetProperty("requestor").GetString();
             var costCenter = queueItem.RootElement.GetProperty("costCenter").GetString();
             var costCenterManager = queueItem.RootElement.GetProperty("costCenterManager").GetString();
-            var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
 
+            // Ensure, project name is not already used
+            var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
             var projectNames = new List<string>();
             foreach (var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
             {
-                projectNames.Add(projectNode.GetProperty("name").GetString());
+                var existingProjectName = projectNode.GetProperty("name").GetString();
+                if (existingProjectName.StartsWith("AZP-"))
+                {
+                    projectNames.Add(projectNode.GetProperty("name").GetString().Substring(8));
+                }
+            }
+            if (projectNames.Contains(projectName))
+            {
+                await ReportError($"Duplicate project name - A project with name {projectName} already exists. Please rename and try again.", _managementProjectId, requestor, createType, workItemId);
+                return;
             }
 
             switch (createType)
