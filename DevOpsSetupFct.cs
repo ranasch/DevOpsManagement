@@ -40,7 +40,7 @@ namespace DevOpsManagement
             _log.LogInformation($"*** Function {Constants.SETUP_REPO} triggered with message {setupDevOpsMessage} ***");
 
             string projectId="pending";
-
+            _log.LogDebug("*** Get Properties ***");
             var queueItem = JsonDocument.Parse(setupDevOpsMessage);
             var workItemId = queueItem.RootElement.GetProperty("workItemId").GetInt32();
             var createType = queueItem.RootElement.GetProperty("createType").GetString();
@@ -52,6 +52,7 @@ namespace DevOpsManagement
             var costCenterManager = queueItem.RootElement.GetProperty("costCenterManager").GetString();
 
             // Ensure, project name is not already used
+            _log.LogDebug("*** Validate Project Parameter ***");
             var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
             var projectNames = new List<string>();
             foreach (var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
@@ -62,16 +63,17 @@ namespace DevOpsManagement
                     projectNames.Add(projectNode.GetProperty("name").GetString().Substring(8));
                 }
             }
-            if (projectNames.Contains(projectName))
-            {
-                await ReportError($"Duplicate project name - A project with name {projectName} already exists. Please rename and try again.", _managementProjectId, requestor, createType, workItemId);
-                return;
-            }
 
             switch (createType)
             {
                 case "Project":
                     {
+                        if (projectNames.Contains(projectName))
+                        {
+                            await ReportError($"Duplicate project name - A project with name {projectName} already exists. Please rename and try again.", _managementProjectId, requestor, createType, workItemId);
+                            return;
+                        }
+
                         // validate input
                         if (!await ValidateProjectName(workItemId, createType, projectName, requestor))
                         {
@@ -83,6 +85,7 @@ namespace DevOpsManagement
                         }
 
                         // create new project
+                        _log.LogDebug("*** Create new project ***");
                         var nextId = AzIdCreator.Instance.NextAzId();
                         var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().Replace("<div>", "").Replace("</div>", "");
                         projectDescription = String.Concat(projectDescription,
@@ -104,22 +107,27 @@ namespace DevOpsManagement
                             {
                                 case "cancelled":
                                     pending = false;
+                                    _log.LogInformation("*** Project creation cancelled ***");
                                     break;
                                 case "failed":
                                     pending = false;
+                                    _log.LogError("*** Project creation failed ***");
                                     break;
                                 case "succeeded":
                                     pending = false;
+                                    _log.LogDebug("*** Project creation succeeded ***");
                                     var project = await Project.GetProjectAsync(_organizationUrl, zfProjectName, _pat);
                                     projectId = project.RootElement.GetProperty("id").GetString();
                                     break;
                                 default:
+                                    _log.LogDebug("*** Project creation pending ***");
                                     Thread.Sleep(5000);
                                     break;
                             }
                         } while (pending);
 
                         // Create Project Groups
+                        _log.LogDebug("*** Trigger special group creations ***");
                         var endpoint = await Project.TriggerEndpointAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
                         var deploymentGroup = await Project.TriggerDeploymentGroupAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
                         var releaseDefinition = await Project.TriggerReleaseAdminGroupCreationAsync(_organizationName, zfProjectName, _pat);                        
@@ -128,28 +136,44 @@ namespace DevOpsManagement
                         var projectDescriptor = projectDescriptors.RootElement.GetProperty("value").GetString();
                         var defaultProjectGroups = await Graph.GetAzDevOpsGroupsAsync(_organizationName, projectDescriptor, _pat);
 
+                        _log.LogDebug("*** Get Group Descriptors ***");
                         var defaultGroups = new Dictionary<string, string>();                        
                         foreach(var group in defaultProjectGroups.RootElement.GetProperty("value").EnumerateArray())
                         {
                             defaultGroups.Add(group.GetProperty("displayName").GetString(), group.GetProperty("descriptor").GetString());
                         }
 
-                        var membershipGroups = new Dictionary<string, string>();
-                        var buildAdminsGroup = defaultGroups.First(d => d.Key == "Build Administrators");
                         var endpointAdminsGroup = defaultGroups.First(d => d.Key == "Endpoint Administrators");
                         var deploymentGroupAdminsGroup = defaultGroups.First(d => d.Key == "Deployment Group Administrators");
+                        var buildAdminsGroup = defaultGroups.First(d => d.Key == "Build Administrators");
                         var releaseAdminsGroup = defaultGroups.First(d => d.Key == "Release Administrators");
-                        membershipGroups.Add(buildAdminsGroup.Key, buildAdminsGroup.Value);
+                        var contributors = defaultGroups.First(d => d.Key == "Contributors");
+                        var readers = defaultGroups.First(d => d.Key == "Readers");
+                        var projectAdmins = defaultGroups.First(d => d.Key == "Project Administrators");
+
+                        _log.LogDebug("*** Create Groups ***");
+                        var projectConsumerGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.Proj_Consumer, nextId), new[] { readers.Value }, _pat);
+                        var projectMaintDeveloperGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.ProjMaint_Developer, nextId), new[] { contributors.Value }, _pat);
+                        var projectMaintAdminsGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.ProjMaint_Adminstrator, nextId), new[] { projectAdmins.Value }, _pat);
+                        var projectMaintDeployerGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.ProjMaint_Deployer, nextId), new[] { buildAdminsGroup.Value }, _pat);
+
+                        var membershipGroups = new Dictionary<string, string>();
                         membershipGroups.Add(endpointAdminsGroup.Key, endpointAdminsGroup.Value);
                         membershipGroups.Add(deploymentGroupAdminsGroup.Key, deploymentGroupAdminsGroup.Value);
-                        membershipGroups.Add(releaseAdminsGroup.Key, releaseAdminsGroup.Value);
-                        var joinedGroups = membershipGroups.Select(g=>g.Value).ToArray();
-                        //membershipGroups.Add("")
-                        var infraMaintAdminGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.InfraMaint_Administrator, nextId), joinedGroups, _pat);
-                        var groupDescriptor = infraMaintAdminGroup.RootElement.GetProperty("descriptor").GetString();
 
+                        var joinedGroups = membershipGroups.Select(g => g.Value).ToArray();
+
+                        var infraMaintDeveloperGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.InfraMaint_Developer, nextId), joinedGroups, _pat);
+
+                        membershipGroups.Add(buildAdminsGroup.Key, buildAdminsGroup.Value);
+                        membershipGroups.Add(releaseAdminsGroup.Key, releaseAdminsGroup.Value);
+
+                        joinedGroups = membershipGroups.Select(g => g.Value).ToArray();
+
+                        var infraMaintAdminGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.InfraMaint_Administrator, nextId), joinedGroups, _pat);
 
                         // Finish up
+                        _log.LogDebug("*** Update Workitem Status ***");
                         UpdateWorkItemStatus(wiType.project, workItemId, nextId, zfProjectName);
                         var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\"{zfProjectName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;
@@ -158,13 +182,11 @@ namespace DevOpsManagement
                     {
                         var repoName = queueItem.RootElement.GetProperty("repositoryName").GetString();
                         var azp_id = queueItem.RootElement.GetProperty("azp_Id").GetInt32();
-                        var parentProjectName = string.Format(Constants.PROJECT_PREFIX, azp_id.ToString("D3")) + projectName;
-                        var projectNameMatch = projectNames.FirstOrDefault<string>(p => p.Contains(parentProjectName));
                         if (String.IsNullOrEmpty(repoName))
                         {
                             throw new ApplicationException("Missing repository name - abort");
                         }
-                        var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectNameMatch, _pat);
+                        var currentProject = await Project.GetProjectByNameAsync(_organizationUrl, projectName, _pat);
                         try
                         {
                             projectId = currentProject.RootElement.GetProperty("id").GetString();
@@ -175,8 +197,7 @@ namespace DevOpsManagement
                             throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
                         }
 
-                        //await CreateRepository(projectNameMatch, repoName, projectId);
-                        await Repository.CreateCompliantRepositoryAsync(_organizationName, _organizationUrl, projectNameMatch, repoName, projectId, _pat);
+                        await Repository.CreateCompliantRepositoryAsync(_organizationName, _organizationUrl, projectName, repoName, projectId, _pat);
 
                         UpdateWorkItemStatus(wiType.repo, workItemId);
                         break;

@@ -86,10 +86,4 @@ namespace DevOpsManagement
         public const string Proj_Consumer = "AZG-{0}_Proj_Consumer";
     }
 
-    internal struct GroupNames
-    {
-        public string AzDoName { get; set; }
-        public string SecurityDescriptor;        
-    }
-
 }
