@@ -121,13 +121,14 @@ namespace DevOpsManagement
 
                         // Create Project Groups
                         var endpoint = await Project.TriggerEndpointAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
+                        var deploymentGroup = await Project.TriggerDeploymentGroupAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
+                        var releaseDefinition = await Project.TriggerReleaseAdminGroupCreationAsync(_organizationName, zfProjectName, _pat);                        
                         var projectDescriptors = await Project.GetProjectDescriptorAsync(_organizationName, projectId, _pat);
-                        var projectDescriptor = projectDescriptors.RootElement.GetProperty("value").GetString();
 
+                        var projectDescriptor = projectDescriptors.RootElement.GetProperty("value").GetString();
                         var defaultProjectGroups = await Graph.GetAzDevOpsGroupsAsync(_organizationName, projectDescriptor, _pat);
 
-                        var defaultGroups = new Dictionary<string, string>();
-                        
+                        var defaultGroups = new Dictionary<string, string>();                        
                         foreach(var group in defaultProjectGroups.RootElement.GetProperty("value").EnumerateArray())
                         {
                             defaultGroups.Add(group.GetProperty("displayName").GetString(), group.GetProperty("descriptor").GetString());
@@ -136,8 +137,12 @@ namespace DevOpsManagement
                         var membershipGroups = new Dictionary<string, string>();
                         var buildAdminsGroup = defaultGroups.First(d => d.Key == "Build Administrators");
                         var endpointAdminsGroup = defaultGroups.First(d => d.Key == "Endpoint Administrators");
+                        var deploymentGroupAdminsGroup = defaultGroups.First(d => d.Key == "Deployment Group Administrators");
+                        var releaseAdminsGroup = defaultGroups.First(d => d.Key == "Release Administrators");
                         membershipGroups.Add(buildAdminsGroup.Key, buildAdminsGroup.Value);
                         membershipGroups.Add(endpointAdminsGroup.Key, endpointAdminsGroup.Value);
+                        membershipGroups.Add(deploymentGroupAdminsGroup.Key, deploymentGroupAdminsGroup.Value);
+                        membershipGroups.Add(releaseAdminsGroup.Key, releaseAdminsGroup.Value);
                         var joinedGroups = membershipGroups.Select(g=>g.Value).ToArray();
                         //membershipGroups.Add("")
                         var infraMaintAdminGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.InfraMaint_Administrator, nextId), joinedGroups, _pat);
