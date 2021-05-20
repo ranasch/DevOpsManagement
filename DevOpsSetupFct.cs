@@ -110,8 +110,31 @@ namespace DevOpsManagement
                         } while (pending);
 
                         // Create Project Groups
+                        var endpoint = await Project.TriggerEndpointAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
+                        var projectDescriptors = await Project.GetProjectDescriptorAsync(_organizationName, projectId, _pat);
+                        var projectDescriptor = projectDescriptors.RootElement.GetProperty("value").GetString();
+
+                        var defaultProjectGroups = await Graph.GetAzDevOpsGroupsAsync(_organizationName, projectDescriptor, _pat);
+
+                        var defaultGroups = new Dictionary<string, string>();
+                        
+                        foreach(var group in defaultProjectGroups.RootElement.GetProperty("value").EnumerateArray())
+                        {
+                            defaultGroups.Add(group.GetProperty("displayName").GetString(), group.GetProperty("descriptor").GetString());
+                        }
+
+                        var membershipGroups = new Dictionary<string, string>();
+                        var buildAdminsGroup = defaultGroups.First(d => d.Key == "Build Administrators");
+                        var endpointAdminsGroup = defaultGroups.First(d => d.Key == "Endpoint Administrators");
+                        membershipGroups.Add(buildAdminsGroup.Key, buildAdminsGroup.Value);
+                        membershipGroups.Add(endpointAdminsGroup.Key, endpointAdminsGroup.Value);
+                        var joinedGroups = membershipGroups.Select(g=>g.Value).ToArray();
+                        //membershipGroups.Add("")
+                        var infraMaintAdminGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.InfraMaint_Administrator, nextId), joinedGroups, _pat);
+                        var groupDescriptor = infraMaintAdminGroup.RootElement.GetProperty("descriptor").GetString();
 
 
+                        // Finish up
                         UpdateWorkItemStatus(wiType.project, workItemId, nextId, zfProjectName);
                         var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\"{zfProjectName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;

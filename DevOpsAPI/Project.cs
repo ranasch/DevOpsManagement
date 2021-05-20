@@ -250,5 +250,76 @@
 
             return azid;
         }
+
+        public static async Task<JsonDocument> GetProjectDescriptorAsync(string organizationName, string projectId, string pat)
+        {
+            try
+            {
+                // GET https://vssps.dev.azure.com/{{organization}}/_apis/graph/descriptors/95873e02-95f8-40cf-bce6-e563c7cd5fdf?api-version={{api-version-preview}}
+                var queryResponse = await $"https://vssps.dev.azure.com/{organizationName}"
+                    .AppendPathSegment($"_apis/graph/descriptors/{projectId}")
+                    .SetQueryParam("api-version", Constants.APIVERSION)
+                    .WithBasicAuth(string.Empty, pat)
+                    .AllowAnyHttpStatus()
+                    .GetAsync();
+
+                if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                    return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+                else
+                    return JsonDocument.Parse("{}");
+            }
+            catch (Exception ex) { return JsonDocument.Parse("{}"); }
+
+        }
+
+        /// <summary>
+        /// This triggers the creation of the Endpoint Administrators group
+        /// </summary>
+        /// <param name="_organization"></param>
+        /// <param name="projectName"></param>
+        /// <param name="projectDescription"></param>
+        /// <param name="processTemplateId"></param>
+        /// <param name="pat"></param>
+        /// <returns></returns>
+        internal static async Task<string> TriggerEndpointAdminGroupCreationAsync(Url _organization,
+            string projectId,
+            string pat)
+        {
+            var dummyServiceConnection = new
+            {
+                authorization = new { 
+                    scheme = "UsernamePassword",
+                    parameters=new {username="",password=""}
+                },
+                name = "donotuse",
+                serviceEndpointProjectReferences = new[]
+                {
+                    new {
+                        name="dummyServiceConnection",
+                        projectReference = new
+                        {
+                            id = projectId
+                        }
+                    }
+                },
+                type="generic",
+                url="https://bing.com",
+                isShared=false,
+                owner="library"
+            };
+
+            var queryResponse = await $"{_organization}"
+                .AppendPathSegment("_apis/serviceendpoint/endpoints")
+                .SetQueryParam("api-version", "6.0-preview.4")
+                .WithBasicAuth(string.Empty, pat)
+                .AllowAnyHttpStatus()
+                .PostJsonAsync(dummyServiceConnection);
+
+            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
+            else
+                return string.Empty;
+        }
+
     }
 }

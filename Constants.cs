@@ -1,4 +1,7 @@
-﻿namespace DevOpsManagement
+﻿using System;
+using System.Collections.Generic;
+
+namespace DevOpsManagement
 {
     internal class Constants
     {
@@ -58,7 +61,7 @@
     internal struct ZfGroupNames
     {
         /// <summary>
-        /// member of Build Administrators, End Point Administrators, Deployment Group Administrators, Release Administrators
+        /// member of Build Administrators, Endpoint Administrators, Deployment Group Administrators, Release Administrators
         /// </summary>
         public const string InfraMaint_Administrator = "AZG-{0}_InfraMaint_Administrator";
         /// <summary>
@@ -82,4 +85,11 @@
         /// </summary>
         public const string Proj_Consumer = "AZG-{0}_Proj_Consumer";
     }
+
+    internal struct GroupNames
+    {
+        public string AzDoName { get; set; }
+        public string SecurityDescriptor;        
+    }
+
 }

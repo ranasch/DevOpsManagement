@@ -2,42 +2,57 @@
 {
     using Flurl;
     using Flurl.Http;
-    using System.IO;
-    using System.Linq;
     using System.Text.Json;
     using System.Threading.Tasks;
 
     public static class Graph
     {
-        public static async Task<string> CreateAzDevOpsGroupAsync(Url _organization,
-            string projectName,
+        public static async Task<JsonDocument> CreateAzDevOpsGroupAsync(string orgaName,
+            string projectDescriptor,
             string groupName,
-            string pat)
+            string [] groupsToJoinAsMember,
+            string pat,
+            string groupDescription = "")
         {
-            // POST https://vssps.dev.azure.com/{organization}/_apis/graph/groups?api-version=6.1-preview.1
+            // POST https://vssps.dev.azure.com/{{organization}}/_apis/graph/groups?scopeDescriptor=scp.ODU4ZTU0OTItYThkMC00OWEyLWI1NzAtNDNmZTY3ODJkYmJl&api-version=6.0-preview.1
             var group = new
             {
-                name = projectName,
-                capabilities = new
-                {
-                    versioncontrol = new
-                    {
-                        sourceControlType = "Git"
-                    }
-                }
+                displayName = groupName,
+                description= groupDescription
             };
+            var memberships = string.Join(",", groupsToJoinAsMember);
 
-            var queryResponse = await $"{_organization}"
+            var queryResponse = await $"https://vssps.dev.azure.com/{orgaName}"
                 .AppendPathSegment("_apis/graph/groups")
-                .SetQueryParam("api-version", "6.0-preview.1")
+                .SetQueryParam("scopeDescriptor", projectDescriptor)
+                .SetQueryParam("groupDescriptors", memberships)
+                .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
                 .AllowAnyHttpStatus()
                 .PostJsonAsync(group);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
+                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
             else
-                return string.Empty;
+                return JsonDocument.Parse("{}");
+        }
+
+        public static async Task<JsonDocument> GetAzDevOpsGroupsAsync(string orgaName, string projectDescriptor, string pat)
+        {
+            // GET https://vssps.dev.azure.com/{{organization}}/_apis/graph/groups?scopeDescriptor=scp.ODU4ZTU0OTItYThkMC00OWEyLWI1NzAtNDNmZTY3ODJkYmJl&api-version={{api-version-preview}}
+
+            var queryResponse = await $"https://vssps.dev.azure.com/{orgaName}"
+                .AppendPathSegment("_apis/graph/groups")
+                .SetQueryParam("scopeDescriptor", projectDescriptor)
+                .SetQueryParam("api-version", Constants.APIVERSION)
+                .WithBasicAuth(string.Empty, pat)
+                .AllowAnyHttpStatus()
+                .GetAsync();
+
+            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+            else
+                return JsonDocument.Parse("{}");
         }
 
     }
