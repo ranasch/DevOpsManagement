@@ -6,26 +6,58 @@
       "type": "string",
       "defaultValue": "sw4zf"
     },
-    "connections_azurequeues_externalid": {
-      "defaultValue": "/subscriptions/86a210e0-3877-4587-8ac4-9b5fa848fb0e/resourceGroups/rainerdtl-Playground-510316/providers/Microsoft.Web/connections/azurequeues",
-      "type": "String"
-    },
-    "connections_visualstudioteamservices_externalid": {
-      "defaultValue": "/subscriptions/86a210e0-3877-4587-8ac4-9b5fa848fb0e/resourceGroups/rainerdtl-Playground-510316/providers/Microsoft.Web/connections/visualstudioteamservices",
+    "StorageAccountName": {
       "type": "String"
     }
   },
   "variables": {
-    "workflows_zfDemoProjectCreation_name": "sw4zfAzureDevOpsProjectCreation"
-    //"resourceId": "[resourceId('Microsoft.Logic/workflows/triggers', variables('logicApp').name, variables('logicApp').trigger)]",
-    //"apiVersion": "[providers('Microsoft.Logic', 'workflows').apiVersions[0]]"
+    "team": "zfProjectCreation Team",
+    "workflows_sw4zf_ProjectCreation_name": "[concat('wf-', uniqueString(resourceGroup().id))]",
+    "queueConnectionName": "[concat('queue-', uniqueString(resourceGroup().id))]",
+    "devopsConnectionName": "[concat('devops-', uniqueString(resourceGroup().id))]"
   },
   "resources": [
     {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[variables('queueConnectionName')]",
+      "location": "[resourceGroup().location]",
+      "kind": "V1",
+      "properties": {
+        "displayName": "StorageQueueConnection",
+        "customParameterValues": {},
+        "api": {
+          "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azurequeues')]"
+        },
+        "parameterValues": {
+          "storageaccount": "[parameters('StorageAccountName')]",
+          "sharedkey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[variables('devopsConnectionName')]",
+      "location": "[resourceGroup().location]",
+      "kind": "V1",
+      "properties": {
+        "displayName": "Azure DevOps",
+        "customParameterValues": {},
+        "api": {
+          "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/visualstudioteamservices')]"
+        }
+      }
+    },
+    {
       "type": "Microsoft.Logic/workflows",
       "apiVersion": "2017-07-01",
-      "name": "[variables('workflows_zfDemoProjectCreation_name')]",
-      "location": "westeurope",
+      "name": "[variables('workflows_sw4zf_ProjectCreation_name')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections/', variables('queueConnectionName'))]",
+        "[resourceId('Microsoft.Web/connections/', variables('devopsConnectionName'))]"
+      ],
+      "location": "[resourceGroup().location]",
       "properties": {
         "state": "Enabled",
         "definition": {
@@ -55,7 +87,7 @@
                 "path": "/v2/workitemupdated_trigger/@{encodeURIComponent('zfProjectCreation')}/_apis/wit/wiql",
                 "queries": {
                   "account": "[parameters('AzureDevOpsOrganization')]",
-                  "team": "zfProjectCreation Team",
+                  "team": "[variables('team')]",
                   "wiql__System_State": "Approved",
                   "wiql__System_WorkItemType": "Project"
                 }
@@ -98,7 +130,7 @@
                 "method": "patch",
                 "path": "/_apis/wit/workitems/@{encodeURIComponent(triggerBody()?['fields']?['System_Id'])}",
                 "queries": {
-                  "account": "pocit"
+                  "account": "[parameters('AzureDevOpsOrganization')]"
                 }
               }
             }
@@ -109,14 +141,14 @@
           "$connections": {
             "value": {
               "azurequeues": {
-                "connectionId": "[parameters('connections_azurequeues_externalid')]",
-                "connectionName": "azurequeues",
-                "id": "/subscriptions/86a210e0-3877-4587-8ac4-9b5fa848fb0e/providers/Microsoft.Web/locations/westeurope/managedApis/azurequeues"
+                "connectionId": "[resourceId('Microsoft.Web/connections', variables('queueConnectionName'))]",
+                "connectionName": "[variables('queueConnectionName')]",
+                "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azurequeues')]"
               },
               "visualstudioteamservices": {
-                "connectionId": "[parameters('connections_visualstudioteamservices_externalid')]",
-                "connectionName": "visualstudioteamservices",
-                "id": "/subscriptions/86a210e0-3877-4587-8ac4-9b5fa848fb0e/providers/Microsoft.Web/locations/westeurope/managedApis/visualstudioteamservices"
+                "connectionId": "[resourceId('Microsoft.Web/connections', variables('devopsConnectionName'))]",
+                "connectionName": "[variables('devopsConnectionName')]",
+                "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/visualstudioteamservices')]"
               }
             }
           }
@@ -124,22 +156,5 @@
       }
     }
   ],
-  "outputs": {
-    "endpointUrl": {
-      "type": "string",
-      "value": "[listCallbackUrl(variables('resourceId'), variables('apiVersion')).value]"
-    },
-    "path": {
-      "type": "string",
-      "value": "[listCallbackUrl(variables('resourceId'), variables('apiVersion')).basePath]"
-    },
-    "querystring": {
-      "type": "string",
-      "value": "[concat('api-version=', variables('apiVersion'), '&sp=', uriComponent(listCallbackUrl(variables('resourceId'), variables('apiVersion')).queries.sp), '&sv=', listCallbackUrl(variables('resourceId'), variables('apiVersion')).queries.sv, '&sig=', listCallbackUrl(variables('resourceId'), variables('apiVersion')).queries.sig)]"
-    },
-    "sasToken": {
-      "type": "string",
-      "value": "[concat('sp=', uriComponent(listCallbackUrl(variables('resourceId'), variables('apiVersion')).queries.sp), '&sv=', listCallbackUrl(variables('resourceId'), variables('apiVersion')).queries.sv, '&sig=', listCallbackUrl(variables('resourceId'), variables('apiVersion')).queries.sig)]"
-    }
-  }
+  "outputs": {}
 }

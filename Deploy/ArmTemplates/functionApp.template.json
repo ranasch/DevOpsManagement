@@ -29,7 +29,7 @@
       "name": "[concat('queue-', uniqueString(resourceGroup().id))]",
       "location": "[resourceGroup().location]",
       "properties": {
-        "displayName": "StorageQueueConnectionForFunctionApp",
+        "displayName": "StorageQueueConnection",
         "api": {
           "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azurequeues')]"
         },
