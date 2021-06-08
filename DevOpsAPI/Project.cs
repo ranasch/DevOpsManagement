@@ -280,7 +280,7 @@
         /// <param name="projectName"></param>
         /// <param name="pat"></param>
         /// <returns></returns>
-        internal static async Task<string> TriggerEndpointAdminGroupCreationAsync(Url _organization, string projectId, string pat)
+        internal static async Task TriggerEndpointAdminGroupCreationAsync(Url _organization, string projectId, string pat)
         {
             var dummyServiceConnection = new
             {
@@ -314,9 +314,21 @@
                 .PostJsonAsync(dummyServiceConnection);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
+            {
+                var serviceEndpointId = JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
+                //Service Endpoint created --> EndpointAdministrator group created --> cleanup dummy service endppoint
+                var deleteResponse = await $"{_organization}"
+                    .AppendPathSegment($"_apis/serviceendpoint/endpoints/{serviceEndpointId}")
+                    .SetQueryParam("projectIds", projectId)
+                    .SetQueryParam("api-version", "6.1-preview.4")
+                    .WithBasicAuth(string.Empty, pat)
+                    .AllowAnyHttpStatus()
+                    .DeleteAsync();
+
+                return;
+            }
             else
-                return string.Empty;
+                throw new ApplicationException("Could not create service endpoint");
         }
 
         /// <summary>
@@ -326,7 +338,7 @@
         /// <param name="projectName"></param>
         /// <param name="pat"></param>
         /// <returns></returns>
-        internal static async Task<int> TriggerDeploymentGroupAdminGroupCreationAsync(Url _organization, string projectId, string pat)
+        internal static async Task TriggerDeploymentGroupAdminGroupCreationAsync(Url _organization, string projectId, string pat)
         {
             var dummyDeploymentGroup = new
             {
@@ -343,9 +355,20 @@
                 .PostJsonAsync(dummyDeploymentGroup);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetInt32();
+            {
+                var groupId = JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetInt32();
+                var deleteResponse = await $"{_organization}"
+                    .AppendPathSegment(projectId)
+                    .AppendPathSegment($"_apis/distributedtask/deploymentgroups/{groupId}")
+                    .SetQueryParam("api-version", "6.1-preview.1")
+                    .WithBasicAuth(string.Empty, pat)
+                    .AllowAnyHttpStatus()
+                    .DeleteAsync();
+
+                return;
+            }
             else
-                return 0;
+                throw new ApplicationException("Could not create Deployment Group");
         }
 
         /// <summary>
@@ -355,7 +378,7 @@
         /// <param name="projectName"></param>
         /// <param name="pat"></param>
         /// <returns></returns>
-        internal static async Task<int> TriggerReleaseAdminGroupCreationAsync(string orgaName, string projectName, string pat)
+        internal static async Task TriggerReleaseAdminGroupCreationAsync(string orgaName, string projectName, string pat)
         {
             string dummyReleaseDefinition = "{\"id\":0,\"name\":\"DeleteMe\",\"source\":2,\"comment\":\"\",\"createdOn\":\"2021-05-20T09:52:01.369Z\",\"createdBy\":null,\"modifiedBy\":null,\"modifiedOn\":\"2021-05-20T09:52:01.369Z\",\"environments\":[{\"id\":-2,\"name\":\"Stage 1\",\"rank\":1,\"variables\":{},\"variableGroups\":[],\"preDeployApprovals\":{\"approvals\":[{\"rank\":1,\"isAutomated\":true,\"isNotificationOn\":false,\"id\":0}],\"approvalOptions\":{\"executionOrder\":1}},\"deployStep\":{\"tasks\":[],\"id\":0},\"postDeployApprovals\":{\"approvals\":[{\"rank\":1,\"isAutomated\":true,\"isNotificationOn\":false,\"id\":0}],\"approvalOptions\":{\"executionOrder\":2}},\"deployPhases\":[{\"deploymentInput\":{\"parallelExecution\":{\"parallelExecutionType\":0},\"agentSpecification\":{\"metadataDocument\":\"https://mmsprodweu1.vstsmms.visualstudio.com/_apis/mms/images/VS2017/metadata\",\"identifier\":\"vs2017-win2016\",\"url\":\"https://mmsprodweu1.vstsmms.visualstudio.com/_apis/mms/images/VS2017\"},\"skipArtifactsDownload\":false,\"artifactsDownloadInput\":{},\"demands\":[],\"enableAccessToken\":false,\"timeoutInMinutes\":0,\"jobCancelTimeoutInMinutes\":1,\"condition\":\"succeeded()\",\"overrideInputs\":{},\"dependencies\":[]},\"rank\":1,\"phaseType\":1,\"name\":\"Agent job\",\"refName\":null,\"workflowTasks\":[],\"phaseInputs\":{\"phaseinput_artifactdownloadinput\":{\"artifactsDownloadInput\":{},\"skipArtifactsDownload\":false}}}],\"runOptions\":{},\"environmentOptions\":{\"emailNotificationType\":\"OnlyOnFailure\",\"emailRecipients\":\"release.environment.owner;release.creator\",\"skipArtifactsDownload\":false,\"timeoutInMinutes\":0,\"enableAccessToken\":false,\"publishDeploymentStatus\":true,\"badgeEnabled\":false,\"autoLinkWorkItems\":false,\"pullRequestDeploymentEnabled\":false},\"demands\":[],\"conditions\":[{\"conditionType\":1,\"name\":\"ReleaseStarted\",\"value\":\"\"}],\"executionPolicy\":{\"concurrencyCount\":1,\"queueDepthCount\":0},\"schedules\":[],\"properties\":{\"LinkBoardsWorkItems\":false,\"BoardsEnvironmentType\":\"unmapped\"},\"preDeploymentGates\":{\"id\":0,\"gatesOptions\":null,\"gates\":[]},\"postDeploymentGates\":{\"id\":0,\"gatesOptions\":null,\"gates\":[]},\"environmentTriggers\":[],\"owner\":{\"displayName\":\"Rainer Nasch 🍬\",\"id\":\"63fab158-69d5-4bc4-8a5a-1033f1cf3ee5\",\"isAadIdentity\":true,\"isContainer\":false,\"uniqueName\":\"rainern@microsoft.com\",\"url\":\"https://dev.azure.com/pocit/\"},\"retentionPolicy\":{\"daysToKeep\":30,\"releasesToKeep\":3,\"retainBuild\":true},\"processParameters\":{}}],\"artifacts\":[],\"variables\":{},\"variableGroups\":[],\"triggers\":[],\"lastRelease\":null,\"tags\":[],\"path\":\"\\\\\",\"properties\":{\"DefinitionCreationSource\":\"ReleaseNew\",\"IntegrateJiraWorkItems\":\"false\",\"IntegrateBoardsWorkItems\":false},\"releaseNameFormat\":\"Release-$(rev:r)\",\"description\":\"\"}";
 
@@ -369,9 +392,20 @@
                 .PostStringAsync(dummyReleaseDefinition);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetInt32();
+            {
+                var definitionId= JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetInt32();
+                var deleteResponse = await $"https://vsrm.dev.azure.com/{orgaName}"
+                    .AppendPathSegment(projectName)
+                    .AppendPathSegment($"_apis/Release/definitions/{definitionId}")
+                    .WithHeader("Content-Type", "application/json")
+                    .SetQueryParam("api-version", "6.1-preview.4")
+                    .WithBasicAuth(string.Empty, pat)
+                    .AllowAnyHttpStatus()
+                    .DeleteAsync();
+                return;
+            }
             else
-                return 0;
+                throw new ApplicationException("Could not create a Release Definition pipeline");
         }
 
     }

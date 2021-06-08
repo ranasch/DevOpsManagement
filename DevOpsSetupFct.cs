@@ -128,9 +128,9 @@ namespace DevOpsManagement
 
                         // Create Project Groups
                         _log.LogDebug("*** Trigger special group creations ***");
-                        var endpoint = await Project.TriggerEndpointAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
-                        var deploymentGroup = await Project.TriggerDeploymentGroupAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
-                        var releaseDefinition = await Project.TriggerReleaseAdminGroupCreationAsync(_organizationName, zfProjectName, _pat);                        
+                        await Project.TriggerEndpointAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
+                        await Project.TriggerDeploymentGroupAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
+                        await Project.TriggerReleaseAdminGroupCreationAsync(_organizationName, zfProjectName, _pat);                        
                         var projectDescriptors = await Project.GetProjectDescriptorAsync(_organizationName, projectId, _pat);
 
                         var projectDescriptor = projectDescriptors.RootElement.GetProperty("value").GetString();
@@ -175,7 +175,7 @@ namespace DevOpsManagement
                         // Finish up
                         _log.LogDebug("*** Update Workitem Status ***");
                         UpdateWorkItemStatus(wiType.project, workItemId, nextId, zfProjectName);
-                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\"{zfProjectName}</a> is provisioned and ready to use.", requestor, _pat);
+                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\">{zfProjectName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;
                     }
                 case "Repository":
@@ -194,12 +194,14 @@ namespace DevOpsManagement
                         }
                         catch
                         {
-                            throw new ApplicationException($"Project {projectName} not found in {_organizationName} - abort");
+                            await ReportError($"Project {projectName} not found in {_organizationName} - cannot provision repository", _managementProjectId, requestor, createType, workItemId);
+                            break;
                         }
 
                         await Repository.CreateCompliantRepositoryAsync(_organizationName, _organizationUrl, projectName, repoName, projectId, _pat);
 
                         UpdateWorkItemStatus(wiType.repo, workItemId);
+                        var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Repository <a href=\"{_organizationUrl}/{projectName}/_git/{repoName}\">{repoName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;
                     }
             };
