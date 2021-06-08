@@ -174,7 +174,7 @@ namespace DevOpsManagement
 
                         // Finish up
                         _log.LogDebug("*** Update Workitem Status ***");
-                        UpdateWorkItemStatus(wiType.project, workItemId, nextId, zfProjectName);
+                        await UpdateWorkItemStatus(wiType.project, workItemId, nextId, zfProjectName);
                         var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\">{zfProjectName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;
                     }
@@ -208,7 +208,7 @@ namespace DevOpsManagement
 
         }
         private enum wiType { project = 1, repo = 2 }
-        private void UpdateWorkItemStatus(wiType type, int workItemId, int nextId=-1, string zfProjectName="")
+        private async Task UpdateWorkItemStatus(wiType type, int workItemId, int nextId=-1, string zfProjectName="")
         {
             var patchOperation = new object();
             if (type == wiType.project)
@@ -260,7 +260,7 @@ namespace DevOpsManagement
                     }
                 };
             }
-            var updatedWorkItem = Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
+            var updatedWorkItem = await Project.UpdateWorkItemByIdAsync(_organizationUrl, workItemId, patchOperation, _pat);
         }
         private async Task<bool> ValidateProjectName(int workItemId, string createType, string projectName, string requestor)
         {

@@ -185,7 +185,10 @@
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
                 return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
             else
-                return JsonDocument.Parse("{}");
+            {
+                var result = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
+                throw new ApplicationException($"Could not update Workitem status - Reason {queryResponse.StatusCode} {result}");
+            }
         }
 
         public static async Task<JsonDocument> AddWorkItemCommentAsync(Url organization, string projectId, int workitemId, string comment, string mention, string pat)
