@@ -5,7 +5,7 @@
 
     public sealed class AzIdCreator
     {
-        private static Dictionary<string, int> currentAzIds;
+        private static int currentAzId;
         
             private static readonly Lazy<AzIdCreator>
                 lazy =
@@ -14,22 +14,22 @@
 
             public static AzIdCreator Instance { get { return lazy.Value; } }
 
-        public Dictionary<string, int> EnvironmentSeed
+        public int EnvironmentSeed
         {
             set
             {
-                currentAzIds = value;
+                currentAzId = value;
             }
         }
-        public int NextAzId(string environment)
+        public int NextAzId()
         {
             
-            return ++currentAzIds[environment];            
+            return ++currentAzId;            
         }
 
-            private AzIdCreator()
-            {
-            }
+        private AzIdCreator()
+        {
         }
+    }
     
 }

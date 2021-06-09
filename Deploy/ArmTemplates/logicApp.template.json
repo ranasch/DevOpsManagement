@@ -1,0 +1,299 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "AzureDevOpsOrganization": {
+      "type": "string",
+      "defaultValue": "sw4zf"
+    },
+    "StorageAccountName": {
+      "type": "String"
+    },
+    "CreationProjectName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure DevOps Project Name triggering the project creation"
+      },
+      "defaultValue": "zfProjectCreation"
+    }
+  },
+  "variables": {
+    "team": "[concat(parameters('CreationProjectName'), ' Team')]",
+    "workflows_sw4zf_ProjectCreation_name": "[concat('wf-project-', uniqueString(resourceGroup().id))]",
+    "workflows_sw4zf_RepoCreation_name": "[concat('wf-repo-', uniqueString(resourceGroup().id))]",
+    "queueConnectionName": "[concat('queue-', uniqueString(resourceGroup().id))]",
+    "devopsConnectionName": "[concat('devops-', uniqueString(resourceGroup().id))]",
+    "triggerPath": "[concat('/v2/workitemupdated_trigger/@{encodeURIComponent(''', parameters('CreationProjectName') ,''')}/_apis/wit/wiql')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[variables('queueConnectionName')]",
+      "location": "[resourceGroup().location]",
+      "kind": "V1",
+      "properties": {
+        "displayName": "StorageQueueConnection",
+        "customParameterValues": {},
+        "api": {
+          "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azurequeues')]"
+        },
+        "parameterValues": {
+          "storageaccount": "[parameters('StorageAccountName')]",
+          "sharedkey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[variables('devopsConnectionName')]",
+      "location": "[resourceGroup().location]",
+      "kind": "V1",
+      "properties": {
+        "displayName": "Azure DevOps",
+        "customParameterValues": {},
+        "api": {
+          "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/visualstudioteamservices')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2017-07-01",
+      "name": "[variables('workflows_sw4zf_ProjectCreation_name')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections/', variables('queueConnectionName'))]",
+        "[resourceId('Microsoft.Web/connections/', variables('devopsConnectionName'))]"
+      ],
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "$connections": {
+              "defaultValue": {},
+              "type": "Object"
+            }
+          },
+          "triggers": {
+            "When_a_work_item_is_updated": {
+              "recurrence": {
+                "frequency": "Minute",
+                "interval": 1
+              },
+              "splitOn": "@triggerBody()?['value']",
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['visualstudioteamservices']['connectionId']"
+                  }
+                },
+                "method": "get",
+                "path": "[variables('triggerPath')]",
+                "queries": {
+                  "account": "[parameters('AzureDevOpsOrganization')]",
+                  "team": "[variables('team')]",
+                  "wiql__System_State": "Approved",
+                  "wiql__System_WorkItemType": "Project"
+                }
+              }
+            }
+          },
+          "actions": {
+            "Put_a_message_on_a_queue": {
+              "runAfter": {},
+              "type": "ApiConnection",
+              "inputs": {
+                "body": "{\n\"createType\": \"Project\",\n\"workItemId\": @{triggerBody()?['fields']?['System_Id']},\n\"projectName\": \"@{triggerBody()?['fields']?['System_Title']}\",\n\"projectDescription\": \"@{triggerBody()?['fields']?['System_Description']}\",\n\"dataOwner1\": \"@{triggerBody()?['fields']?['Custom_DataOwner']}\", \n\"dataOwner2\": \"@{triggerBody()?['fields']?['Custom_DataOwner2']}\",\n\"requestor\": \"@{triggerBody()?['fields']?['Custom_Requestor']}\",\n\"costCenter\": \"@{triggerBody()?['fields']?['Custom_CostCenter']}\",\n\"costCenterManager\": \"@{triggerBody()?['fields']?['Custom_CostCenterManager']}\"\n}",
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['azurequeues']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/@{encodeURIComponent('azprojectsetup')}/messages"
+              }
+            },
+            "Update_a_work_item": {
+              "runAfter": {
+                "Put_a_message_on_a_queue": [
+                  "Succeeded"
+                ]
+              },
+              "type": "ApiConnection",
+              "inputs": {
+                "body": {
+                  "userEnteredFields": {
+                    "State": "Pending"
+                  }
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['visualstudioteamservices']['connectionId']"
+                  }
+                },
+                "method": "patch",
+                "path": "/_apis/wit/workitems/@{encodeURIComponent(triggerBody()?['fields']?['System_Id'])}",
+                "queries": {
+                  "account": "[parameters('AzureDevOpsOrganization')]"
+                }
+              }
+            }
+          },
+          "outputs": {}
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "azurequeues": {
+                "connectionId": "[resourceId('Microsoft.Web/connections', variables('queueConnectionName'))]",
+                "connectionName": "[variables('queueConnectionName')]",
+                "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azurequeues')]"
+              },
+              "visualstudioteamservices": {
+                "connectionId": "[resourceId('Microsoft.Web/connections', variables('devopsConnectionName'))]",
+                "connectionName": "[variables('devopsConnectionName')]",
+                "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/visualstudioteamservices')]"
+              }
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2017-07-01",
+      "name": "[variables('workflows_sw4zf_RepoCreation_name')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections/', variables('queueConnectionName'))]",
+        "[resourceId('Microsoft.Web/connections/', variables('devopsConnectionName'))]"
+      ],
+      "location": "[resourceGroup().location]",
+
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "$connections": {
+              "defaultValue": {},
+              "type": "Object"
+            }
+          },
+          "triggers": {
+            "When_a_work_item_is_updated": {
+              "recurrence": {
+                "frequency": "Minute",
+                "interval": 1
+              },
+              "splitOn": "@triggerBody()?['value']",
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['visualstudioteamservices']['connectionId']"
+                  }
+                },
+                "method": "get",
+                "path": "[variables('triggerPath')]",
+                "queries": {
+                  "account": "[parameters('AzureDevOpsOrganization')]",
+                  "team": "[variables('team')]",
+                  "wiql__System_State": "Approved",
+                  "wiql__System_WorkItemType": "Repository"
+                }
+              }
+            }
+          },
+          "actions": {
+            "Get_work_item_details": {
+              "runAfter": {},
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['visualstudioteamservices']['connectionId']"
+                  }
+                },
+                "method": "get",
+                "path": "/_apis/wit/workitems/@{encodeURIComponent(triggerBody()?['fields']?['System_Parent'])}",
+                "queries": {
+                  "account": "[parameters('AzureDevOpsOrganization')]",
+                  "project": "[parameters('CreationProjectName')]",
+                  "typeName": "Project"
+                }
+              }
+            },
+            "Put_a_message_on_a_queue": {
+              "runAfter": {
+                "Get_work_item_details": [
+                  "Succeeded"
+                ]
+              },
+              "type": "ApiConnection",
+              "inputs": {
+                "body": "{\n\"createType\": \"Repository\",\n\"workItemId\": @{triggerBody()?['fields']?['System_Id']},\n\"azp_Id\": @{body('Get_work_item_details')?['fields']?['Custom_AZP_ID']},\n\"projectName\": \"@{body('Get_work_item_details')?['fields']?['System_Title']}\",\n\"repositoryName\": \"@{triggerBody()?['fields']?['System_Title']}\",\n\"dataOwner1\": \"@{triggerBody()?['fields']?['Custom_DataOwner']}\", \n\"dataOwner2\": \"@{triggerBody()?['fields']?['Custom_DataOwner2']}\",\n\"requestor\": \"@{triggerBody()?['fields']?['Custom_Requestor']}\",\n\"costCenter\": \"@{body('Get_work_item_details')?['fields']?['Custom_CostCenter']}\",\n\"costCenterManager\": \"@{body('Get_work_item_details')?['fields']?['Custom_CostCenterManager']}\"\n}",
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['azurequeues']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/@{encodeURIComponent('azprojectsetup')}/messages"
+              }
+            },
+            "Update_a_work_item": {
+              "runAfter": {
+                "Put_a_message_on_a_queue": [
+                  "Succeeded"
+                ]
+              },
+              "type": "ApiConnection",
+              "inputs": {
+                "body": {
+                  "userEnteredFields": {
+                    "State": "Pending"
+                  }
+                },
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['visualstudioteamservices']['connectionId']"
+                  }
+                },
+                "method": "patch",
+                "path": "/_apis/wit/workitems/@{encodeURIComponent(triggerBody()?['fields']?['System_Id'])}",
+                "queries": {
+                  "account": "[parameters('AzureDevOpsOrganization')]"
+                }
+              }
+            }
+          },
+          "outputs": {}
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "azurequeues": {
+                "connectionId": "[resourceId('Microsoft.Web/connections', variables('queueConnectionName'))]",
+                "connectionName": "[variables('queueConnectionName')]",
+                "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azurequeues')]"
+              },
+              "visualstudioteamservices": {
+                "connectionId": "[resourceId('Microsoft.Web/connections', variables('devopsConnectionName'))]",
+                "connectionName": "[variables('devopsConnectionName')]",
+                "id": "[concat('subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/visualstudioteamservices')]"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}
