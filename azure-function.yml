@@ -1,0 +1,111 @@
+name: NetCore-CI-CD-zfAutomation
+
+trigger:
+- master
+
+variables:
+  azureSubscription: 'Microsoft Azure Internal Consumption (86a210e0-3877-4587-8ac4-9b5fa848fb0e)'
+  functionAppName: 'mypocfunction'
+  vmImageName: 'windows-latest'
+  workingDirectory: '$(System.DefaultWorkingDirectory)/'
+  resourceGroupName: 'rainerdtl-TempStage-156316'
+  keyVaultName: devopsmgmt-kv
+
+stages:
+- stage: Build
+  displayName: Build stage
+
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: Build
+      inputs:
+        command: 'build'
+        projects: |
+          $(workingDirectory)/*.csproj
+        arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive files'
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+        replaceExistingArchive: true
+
+    - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+      artifact: drop
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'development'
+    pool:
+      vmImage: $(vmImageName)
+
+    strategy:
+      runOnce:
+        deploy:
+
+          steps:
+          - task: AzureFunctionApp@1
+            displayName: 'Azure functions app deploy'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: functionApp
+              appName: $(functionAppName)
+              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+          - task: AzureAppServiceSettings@1
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appName: $(functionAppName)
+              resourceGroupName: '$(resourceGroupName)'
+              appSettings: |
+                [
+                  {
+                    "name": "PAT",
+                    "value": "@Microsoft.KeyVault(SecretUri=https://$(keyVaultName).vault.azure.net/secrets/PAT)",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "AzureWebJobsStorageAzureWebJobsStorage",
+                    "value": "@Microsoft.KeyVault(SecretUri=https://$(keyVaultName).vault.azure.net/secrets/WebJobStorage)", 
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "VSTSApiVersion",
+                    "value": "6.1-preview.1",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "VSTSOrganization",
+                    "value": "pocit",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "MANAGEMENT_PROJECT_NAME",
+                    "value": "zfProjectCreation",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "MANAGEMENT_PROJECT_TEAM_NAME",
+                    "value": "zfProjectCreation%20Team",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "Environments",
+                    "value": "dev,test,prod",
+                    "slotSetting": false
+                  }
+                ]
