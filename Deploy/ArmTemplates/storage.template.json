@@ -2,15 +2,16 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "storageAccounts_name": {
+      "type": "String"
+    }
   },
-  "variables": {
-    "storageAccountName": "[concat('store', uniqueString(resourceGroup().id))]"
-  },
+  "variables": {},
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2021-01-01",
-      "name": "[variables('storageAccountName')]",
+      "name": "[parameters('storageAccounts_name')]",
       "location": "[resourceGroup().location]",
       "tags": {
       },
@@ -56,10 +57,10 @@
     },
     {
       "type": "Microsoft.Storage/storageAccounts/blobServices",
-      "apiVersion": "2021-02-01",
-      "name": "[concat(variables('storageAccountName'), '/default')]",
+      "apiVersion": "2021-01-01",
+      "name": "[concat(parameters('storageAccounts_name'), '/default')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_name'))]"
       ],
       "sku": {
         "name": "Standard_LRS",
@@ -75,11 +76,42 @@
       }
     },
     {
-      "type": "Microsoft.Storage/storageAccounts/queueServices",
-      "apiVersion": "2021-02-01",
-      "name": "[concat(variables('storageAccountName'), '/default')]",
+      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "apiVersion": "2019-06-01",
+      "name": "[concat(parameters('storageAccounts_name'), '/default')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_name'))]"
+      ],
+      "sku": {
+        "name": "Standard_LRS",
+        "tier": "Standard"
+      },
+      "properties": {
+        "shareDeleteRetentionPolicy": {
+          "enabled": true,
+          "days": 7
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/queueServices",
+      "apiVersion": "2021-01-01",
+      "name": "[concat(parameters('storageAccounts_name'), '/default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_name'))]"
+      ],
+      "properties": {
+        "cors": {
+          "corsRules": []
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices",
+      "apiVersion": "2021-01-01",
+      "name": "[concat(parameters('storageAccounts_name'), '/default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_name'))]"
       ],
       "properties": {
         "cors": {
@@ -87,19 +119,5 @@
         }
       }
     }
-  ],
-  "outputs": {
-    "storageAccountName": {
-      "type": "string",
-      "value": "[variables('storageAccountName')]"
-    },
-    "storageAccountKey": {
-      "type": "securestring",
-      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-02-01').keys[0].value]"
-    },
-    "storageAccountEndpoint": {
-      "type": "securestring",
-      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-02-01').keys[0].value, ';EndpointSuffix=core.windows.net')]"
-    }
-  }
+  ]
 }

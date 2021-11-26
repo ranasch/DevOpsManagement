@@ -1,0 +1,71 @@
+parameters:
+  stage: ""
+  serviceConnection: ""
+  subscriptionId: ""
+  resourceGroup: ""
+  location: ""
+  appmanagedIdentity: ""
+  deploySPOID: ""
+  mode: ""
+  resourcePrefix: ""
+  library: ""
+
+jobs:
+  - deployment: deploy_devopsAutomation_${{ parameters.stage }}
+    displayName: azdo Azure Infrastructure deployment 
+    variables:
+      - group: ${{ parameters.library }}
+      - name: appInsights
+        value: ${{ parameters.resourcePrefix }}ai-$(env)
+      - name: kvName
+        value: ${{ parameters.resourcePrefix }}-$(env)
+      - name: storageName
+        value: ${{ parameters.resourcePrefix }}stor$(env)
+      - name: functionName
+        value: ${{ parameters.resourcePrefix }}function-$(env)
+      - name: vmImageName
+        value: 'ubuntu-latest'
+    pool:
+      vmImage: $(vmImageName)
+    environment: azdo-${{ parameters.stage }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - download: current
+              artifact: devopsAutomationArtifacts
+
+            - template: deploykeyvault.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                name: $(kvName)
+                appmanagedIdentity: ${{ parameters.appmanagedIdentity }}
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyvault.template.json
+                stage: $(env)
+
+            - template: deployinsights.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                name: $(appInsights)
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/insights.template.json
+                stage: $(env)
+
+            - template: deploystorage.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                name: $(storageName)
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/storage.template.json
+                stage: $(env)
+
