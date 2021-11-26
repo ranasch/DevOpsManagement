@@ -1,24 +1,44 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+name: AzureResources-CI-CD-zfAutomation
 
 trigger:
 - master
 
-pool:
-  vmImage: ubuntu-latest
+variables:
+  azureSubscription: 'Microsoft Azure Internal Consumption (86a210e0-3877-4587-8ac4-9b5fa848fb0e)'
+  functionAppName: 'mypocfunction'
+  vmImageName: 'ubuntu-latest'
+  workingDirectory: '$(System.DefaultWorkingDirectory)/'
+  resourceGroupName: 'rainerdtl-TempStage-156316'
+  keyVaultName: devopsmgmt-kv
 
-steps:
-- task: AzureResourceManagerTemplateDeployment@3
-  inputs:
-    deploymentScope: 'Resource Group'
-    azureResourceManagerConnection: 'Microsoft Azure Internal Consumption(86a210e0-3877-4587-8ac4-9b5fa848fb0e)'
-    subscriptionId: '86a210e0-3877-4587-8ac4-9b5fa848fb0e'
-    action: 'Create Or Update Resource Group'
-    resourceGroupName: 'rainerdtl-TempStage-156316'
-    location: 'West Europe'
-    templateLocation: 'Linked artifact'
-    csmFile: '/Deploy/ArmTemplates/appInsights.template.json'
-    deploymentMode: 'Incremental'
-    deploymentOutputs: 'appInsightsName'
+stages:
+- stage: Deploy
+  displayName: Deploy Infrastructure
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'development'
+    pool:
+      vmImage: $(vmImageName)
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: '$(azureSubscription)'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: '$(resourceGroupName)'
+              location: 'West Europe'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/Deploy/ArmTemplates/appInsights.template.json'
+              deploymentMode: 'Incremental'
+              deploymentOutputs: 'appInsightsName'
+
+          - bash: |
+              echo "Created $(appInsightsName)"
+            
+
