@@ -79,7 +79,7 @@ stages:
                     "slotSetting": false
                   },
                   {
-                    "name": "AzureWebJobsStorageAzureWebJobsStorage",
+                    "name": "AzureWebJobsStorage",
                     "value": "@Microsoft.KeyVault(SecretUri=https://$(keyVaultName).vault.azure.net/secrets/WebJobStorage)", 
                     "slotSetting": false
                   },
