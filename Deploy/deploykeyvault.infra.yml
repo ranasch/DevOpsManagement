@@ -24,5 +24,4 @@ steps:
       templateLocation: Linked artifact
       csmFile: ${{ parameters.armtemplate }}
       deploymentMode: ${{ parameters.mode }}
-      overrideParameters: -keyVaultName "${{ parameters.name }}"
-      # overrideParameters: -keyVaultName "${{ parameters.name }}" -enabledForTemplateDeployment true -objectId ${{ parameters.appmanagedIdentity }} -location "$(location)"
+      overrideParameters: -keyVaultName "${{ parameters.name }}" -enabledForTemplateDeployment true -location "$(location)"

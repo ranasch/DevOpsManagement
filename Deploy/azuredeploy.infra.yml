@@ -35,18 +35,6 @@ jobs:
             - download: current
               artifact: devopsAutomationArtifacts
 
-            - template: deploykeyvault.infra.yml
-              parameters:
-                serviceConnection: ${{ parameters.serviceConnection }}
-                subscriptionId: ${{ parameters.subscriptionId }}
-                resourceGroup: ${{ parameters.resourceGroup }}
-                location: ${{ parameters.location }}
-                mode: ${{ parameters.mode }}
-                name: $(kvName)
-                appmanagedIdentity: ${{ parameters.appmanagedIdentity }}
-                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyVault.template.json
-                stage: $(env)
-
             - template: deployinsights.infra.yml
               parameters:
                 serviceConnection: ${{ parameters.serviceConnection }}
@@ -56,6 +44,17 @@ jobs:
                 mode: ${{ parameters.mode }}
                 name: $(appInsights)
                 armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/insights.template.json
+                stage: $(env)
+
+            - template: deploykeyvault.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                name: $(kvName)
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyVault.template.json
                 stage: $(env)
 
             - template: deploystorage.infra.yml
