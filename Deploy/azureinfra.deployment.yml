@@ -64,7 +64,7 @@ stages:
               armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/storage.template.json
 
           - publish: $(System.DefaultWorkingDirectory)
-            artifact: azdoInfraArtifacts
+            artifact: devopsAutomationArtifacts
 
       - job: "cleanup"
         variables:
