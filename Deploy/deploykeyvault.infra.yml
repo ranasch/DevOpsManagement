@@ -12,17 +12,17 @@ steps:
   - bash: |
       echo "hello from keyvault yaml"
 
-  # - task: AzureResourceManagerTemplateDeployment@3
-  #   displayName: "Deploy: Azure KeyVault"
-  #   inputs:
-  #     deploymentScope: Resource Group
-  #     azureResourceManagerConnection: ${{ parameters.serviceConnection }}
-  #     subscriptionId: ${{ parameters.subscriptionId }}
-  #     action: Create Or Update Resource Group
-  #     resourceGroupName: ${{ parameters.resourceGroup }}
-  #     location: ${{ parameters.location }}
-  #     templateLocation: Linked artifact
-  #     csmFile: ${{ parameters.armtemplate }}
-  #     deploymentMode: ${{ parameters.mode }}
-  #     overrideParameters: -keyVaultName "${{ parameters.name }}"
+  - task: AzureResourceManagerTemplateDeployment@3
+    displayName: "Deploy: Azure KeyVault"
+    inputs:
+      deploymentScope: Resource Group
+      azureResourceManagerConnection: ${{ parameters.serviceConnection }}
+      subscriptionId: ${{ parameters.subscriptionId }}
+      action: Create Or Update Resource Group
+      resourceGroupName: ${{ parameters.resourceGroup }}
+      location: ${{ parameters.location }}
+      templateLocation: Linked artifact
+      csmFile: ${{ parameters.armtemplate }}
+      deploymentMode: ${{ parameters.mode }}
+      overrideParameters: -keyVaultName "${{ parameters.name }}"
       # overrideParameters: -keyVaultName "${{ parameters.name }}" -enabledForTemplateDeployment true -objectId ${{ parameters.appmanagedIdentity }} -location "$(location)"
