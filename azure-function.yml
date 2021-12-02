@@ -4,12 +4,13 @@ trigger:
 - master
 
 variables:
-  azureSubscription: 'DevStageServiceConnection'
-  functionAppName: 'mypocfunction'
-  vmImageName: 'ubuntu-latest'
-  workingDirectory: '$(System.DefaultWorkingDirectory)/'
-  resourceGroupName: 'rainerdtl-TempStage-156316'
-  keyVaultName: devopsmgmt-kv
+  - group: azdo-dev
+  - name: azureSubscription 
+    value: 'DevStageServiceConnection'
+  - name: vmImageName
+    value: 'ubuntu-latest'
+  - name: workingDirectory
+    value: '$(System.DefaultWorkingDirectory)/'
 
 stages:
 - stage: Build

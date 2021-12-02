@@ -9,14 +9,6 @@ variables:
     value: DevStageServiceConnection
   - name: vmImageName
     value: 'ubuntu-latest'
-  - name: resourceGroupName
-    value: 'rainerdtl-TempStage-156316'
-  - name: resourcePrefix
-    value: zfdom
-  - name: devSubscriptionId
-    value: 86a210e0-3877-4587-8ac4-9b5fa848fb0e
-  - name: location
-    value: westeurope
 
 stages:
   - stage: Validation

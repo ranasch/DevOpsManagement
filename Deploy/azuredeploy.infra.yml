@@ -92,3 +92,13 @@ jobs:
                 armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyVault.template.json
                 stage: $(env)
 
+            - task: AzureCLI@2
+              displayName: "Add Secrets to KeyVault"
+              inputs:
+                azureSubscription: ${{ parameters.serviceConnection }}
+                scriptType: "pscore"
+                scriptLocation: "inlineScript"
+                inlineScript: |
+                  $storageConnectionString=az storage account show-connection-string --name $(storageName) --query connectionString
+                  az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
+                  az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
