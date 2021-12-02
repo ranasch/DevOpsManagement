@@ -6,7 +6,7 @@ trigger:
 variables:
   - group: azdo-dev
   - name: devServiceConnection
-    value: Microsoft Azure Internal Consumption (86a210e0-3877-4587-8ac4-9b5fa848fb0e)
+    value: DevStageServiceConnection
   - name: vmImageName
     value: 'ubuntu-latest'
   - name: resourceGroupName

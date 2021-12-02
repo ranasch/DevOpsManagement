@@ -4,7 +4,7 @@ trigger:
 - master
 
 variables:
-  azureSubscription: 'Microsoft Azure Internal Consumption (86a210e0-3877-4587-8ac4-9b5fa848fb0e)'
+  azureSubscription: 'DevStageServiceConnection'
   functionAppName: 'mypocfunction'
   vmImageName: 'ubuntu-latest'
   workingDirectory: '$(System.DefaultWorkingDirectory)/'
