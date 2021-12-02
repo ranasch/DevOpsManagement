@@ -6,7 +6,7 @@ trigger:
 variables:
   azureSubscription: 'Microsoft Azure Internal Consumption (86a210e0-3877-4587-8ac4-9b5fa848fb0e)'
   functionAppName: 'mypocfunction'
-  vmImageName: 'windows-latest'
+  vmImageName: 'ubuntu-latest'
   workingDirectory: '$(System.DefaultWorkingDirectory)/'
   resourceGroupName: 'rainerdtl-TempStage-156316'
   keyVaultName: devopsmgmt-kv
