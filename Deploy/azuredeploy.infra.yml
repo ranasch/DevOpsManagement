@@ -44,7 +44,7 @@ jobs:
                 mode: ${{ parameters.mode }}
                 name: $(kvName)
                 appmanagedIdentity: ${{ parameters.appmanagedIdentity }}
-                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyvault.template.json
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyVault.template.json
                 stage: $(env)
 
             - template: deployinsights.infra.yml

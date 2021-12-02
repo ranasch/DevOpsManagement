@@ -51,7 +51,7 @@ stages:
               name: azdokv-$(randomName)
               stage: validation
               appmanagedIdentity: $(aks-dev-mi)
-              armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/keyvault.template.json
+              armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/keyVault.template.json
 
           - template: /Deploy/deploystorage.infra.yml
             parameters:
