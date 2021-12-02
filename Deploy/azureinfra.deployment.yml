@@ -83,14 +83,12 @@ stages:
   - stage: Dev
     variables:
     - group: azdo-dev
-    - name: stage
-      value: dev
     condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
     displayName: Deploy Shared azdo Services to dev
     jobs:
       - template: /Deploy/azuredeploy.infra.yml
         parameters:
-          stage: $(stage)
+          stage: dev
           serviceConnection: ${{ variables.devServiceConnection }}
           subscriptionId: $(devSubscriptionId)
           resourceGroup: $(resourceGroupName)
