@@ -95,5 +95,5 @@ stages:
           location: $(location)          
           mode: Incremental
           resourcePrefix: $(resourcePrefix)
-          library: azdo-$(stage)
+          library: azdo-dev
 
