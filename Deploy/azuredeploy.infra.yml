@@ -77,8 +77,8 @@ jobs:
                 scriptLocation: "inlineScript"
                 inlineScript: |
                   echo "*** Get Managed Identity for $(functionName) ***"          
-                  $functionmi=az functionapp identity show -g rainerdtl-TempStage-156316 -n mypocfunction --query principalId
-                  echo "##vso[task.setvariable variable=AzureFunctionManagedIdentity;]$(functionmi)"
+                  $functionmi=az functionapp identity show -g ${{ parameters.resourceGroup }} -n $(functionName) --query principalId
+                  echo "##vso[task.setvariable variable=AzureFunctionManagedIdentity;]$functionmi"
 
             - template: deploykeyvault.infra.yml
               parameters:
