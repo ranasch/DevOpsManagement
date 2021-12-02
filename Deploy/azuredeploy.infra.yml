@@ -5,7 +5,6 @@ parameters:
   resourceGroup: ""
   location: ""
   appmanagedIdentity: ""
-  deploySPOID: ""
   mode: ""
   resourcePrefix: ""
   library: ""
@@ -35,28 +34,6 @@ jobs:
             - download: current
               artifact: devopsAutomationArtifacts
 
-            - template: deployinsights.infra.yml
-              parameters:
-                serviceConnection: ${{ parameters.serviceConnection }}
-                subscriptionId: ${{ parameters.subscriptionId }}
-                resourceGroup: ${{ parameters.resourceGroup }}
-                location: ${{ parameters.location }}
-                mode: ${{ parameters.mode }}
-                name: $(appInsights)
-                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/insights.template.json
-                stage: $(env)
-
-            - template: deploykeyvault.infra.yml
-              parameters:
-                serviceConnection: ${{ parameters.serviceConnection }}
-                subscriptionId: ${{ parameters.subscriptionId }}
-                resourceGroup: ${{ parameters.resourceGroup }}
-                location: ${{ parameters.location }}
-                mode: ${{ parameters.mode }}
-                name: $(kvName)
-                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyVault.template.json
-                stage: $(env)
-
             - template: deploystorage.infra.yml
               parameters:
                 serviceConnection: ${{ parameters.serviceConnection }}
@@ -66,5 +43,52 @@ jobs:
                 mode: ${{ parameters.mode }}
                 name: $(storageName)
                 armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/storage.template.json
+                stage: $(env)
+
+            - template: deployinsights.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                name: $(appInsights)
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/insights.template.json
+                stage: $(env)            
+
+            - template: deployfunction.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                name: $(functionName)
+                storagename: $(storageName)
+                appinsightsname: $(appInsights)
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/functionapp.template.json
+                stage: $(env)
+
+            - task: AzureCLI@2
+              displayName: "Get Function Managed Identity"
+              inputs:
+                azureSubscription: ${{ parameters.serviceConnection }}
+                scriptType: "pscore"
+                scriptLocation: "inlineScript"
+                inlineScript: |
+                  echo "*** Get Managed Identity for $(functionName) ***"          
+                  $functionmi=az functionapp identity show -g rainerdtl-TempStage-156316 -n mypocfunction --query principalId
+                  echo "##vso[task.setvariable variable=AzureFunctionManagedIdentity;]$(functionmi)"
+
+            - template: deploykeyvault.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                name: $(kvName)
+                appmanagedIdentity: $(AzureFunctionManagedIdentity)
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyVault.template.json
                 stage: $(env)
 

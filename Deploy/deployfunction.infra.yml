@@ -5,15 +5,13 @@ parameters:
   location: ""
   mode: ""
   name: ""
+  storagename: ""
+  appinsightsname: ""
   armtemplate: ""
-  appmanagedIdentity: ""
 
 steps:
-  - bash: |
-      echo "hello from keyvault yaml"
-
   - task: AzureResourceManagerTemplateDeployment@3
-    displayName: "Deploy: Azure KeyVault"
+    displayName: "Deploy: Azure Function App"
     inputs:
       deploymentScope: Resource Group
       azureResourceManagerConnection: ${{ parameters.serviceConnection }}
@@ -24,4 +22,4 @@ steps:
       templateLocation: Linked artifact
       csmFile: ${{ parameters.armtemplate }}
       deploymentMode: ${{ parameters.mode }}
-      overrideParameters: -keyVaultName "${{ parameters.name }}" -enabledForTemplateDeployment true -objectId ${{ parameters.appmanagedIdentity }} -location "$(location)"
+      overrideParameters: -functionAppName "${{ parameters.name }}" -storageAccountName ${{ parameters.storagename }} -applicationInsightsName ${{ parameters.appinsightsname }}
