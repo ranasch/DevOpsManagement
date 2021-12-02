@@ -9,6 +9,14 @@ variables:
     value: Microsoft Azure Internal Consumption (86a210e0-3877-4587-8ac4-9b5fa848fb0e)
   - name: vmImageName
     value: 'ubuntu-latest'
+  - name: resourceGroupName
+    value: 'rainerdtl-TempStage-156316'
+  - name: devSubscriptionId
+    value: 86a210e0-3877-4587-8ac4-9b5fa848fb0e
+  - name: location
+    value: westeurope
+  - name: deploymentSPObjectId
+    value: idplaceholder
 
 stages:
   - stage: Validation
@@ -88,7 +96,6 @@ stages:
           subscriptionId: $(devSubscriptionId)
           resourceGroup: $(resourceGroupName)
           location: $(location)
-          appmanagedIdentity: $(aks-dev-mi)
           deploySPOID: $(deploymentSPObjectId)
           mode: Incremental
           resourcePrefix: azdo
