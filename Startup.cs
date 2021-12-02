@@ -10,9 +10,11 @@ namespace DevOpsManagement
     using System;
     using DevOpsManagement.DevOpsAPI;
     using System.Collections.Generic;
+    using Microsoft.Extensions.Logging;
 
     public class Startup: FunctionsStartup
     {
+        private ILoggerFactory _loggerFactory;
         public override void Configure(IFunctionsHostBuilder builder)
         {
             var config = new ConfigurationBuilder()
@@ -21,6 +23,10 @@ namespace DevOpsManagement
                .AddEnvironmentVariables()
                .AddUserSecrets<Startup>(true, true)
                .Build();
+
+            builder.Services.AddLogging();
+
+            ConfigureServices(builder);
 
             var appSettings = new Appsettings()
             {
@@ -50,6 +56,13 @@ namespace DevOpsManagement
             var azid = azidTask.GetAwaiter().GetResult();
             var azidinstance = Tools.AzIdCreator.Instance;
             azidinstance.EnvironmentSeed=azid;
+        }
+
+        private void ConfigureServices(IFunctionsHostBuilder builder)
+        {
+            _loggerFactory = new LoggerFactory();
+            var logger = _loggerFactory.CreateLogger("DevOps Function");
+            logger.LogInformation("*** Enter Startup ***");
         }
     }
 }
