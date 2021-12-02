@@ -41,17 +41,17 @@ stages:
               stage: validation
               armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/insights.template.json
 
-          - template: /Deploy/deploykeyvault.infra.yml
-            parameters:
-              serviceConnection: ${{ variables.devServiceConnection }}
-              resourceGroup: azdo-validation-$(randomName)
-              subscriptionId: $(devSubscriptionId)
-              location: $(location)
-              mode: Validation
-              name: azdokv-$(randomName)
-              stage: validation
-              appmanagedIdentity: $(aks-dev-mi)
-              armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/keyvault.template.json
+          # - template: /Deploy/deploykeyvault.infra.yml                      
+          #   parameters:
+          #     serviceConnection: ${{ variables.devServiceConnection }}
+          #     resourceGroup: azdo-validation-$(randomName)
+          #     subscriptionId: $(devSubscriptionId)
+          #     location: $(location)
+          #     mode: Validation
+          #     name: azdokv-$(randomName)
+          #     stage: validation
+          #     appmanagedIdentity: $(aks-dev-mi)
+          #     armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/keyvault.template.json
 
           - template: /Deploy/deploystorage.infra.yml
             parameters:
