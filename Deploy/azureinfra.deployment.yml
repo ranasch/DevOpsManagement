@@ -85,7 +85,7 @@ stages:
     - group: azdo-dev
     dependsOn:
       - Validation
-    condition: and(succeeded('Validation'), ne(variables['Build.SourceBranchName'], 'master'), ne(variables['Build.Reason'], 'PullRequest'))
+    condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
     displayName: Deploy Shared azdo Services to dev
     jobs:
       - template: /Deploy/azuredeploy.infra.yml
