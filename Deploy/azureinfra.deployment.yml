@@ -68,20 +68,20 @@ stages:
           - publish: $(System.DefaultWorkingDirectory)
             artifact: devopsAutomationArtifacts
 
-      - job: "cleanup"
-        variables:
-          randName: $[ dependencies.prepare.outputs['initialize.uniqueName'] ]
-        dependsOn: "prepare"
-        condition: succeededOrFailed('prepare')
-        steps:
-          - task: AzureCLI@2
-            displayName: "Cleanup ResourceGroups"
-            inputs:
-              azureSubscription: ${{ variables.devServiceConnection }}
-              scriptType: "pscore"
-              scriptLocation: "inlineScript"
-              inlineScript: |
-                az group delete -n azdo-validation-$(randName) -y
+      # - job: "cleanup"
+      #   variables:
+      #     randName: $[ dependencies.prepare.outputs['initialize.uniqueName'] ]
+      #   dependsOn: "prepare"
+      #   condition: succeededOrFailed('prepare')
+      #   steps:
+      #     - task: AzureCLI@2
+      #       displayName: "Cleanup ResourceGroups"
+      #       inputs:
+      #         azureSubscription: ${{ variables.devServiceConnection }}
+      #         scriptType: "pscore"
+      #         scriptLocation: "inlineScript"
+      #         inlineScript: |
+      #           az group delete -n azdo-validation-$(randName) -y
   - stage: Dev
     dependsOn: Validation
     variables:
