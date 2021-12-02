@@ -83,7 +83,8 @@ stages:
   - stage: Dev
     variables:
     - group: azdo-dev
-    condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
+    # condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
+    condition: and(eq(variables['Build.SourceBranchName'], 'master'))
     displayName: Deploy Shared azdo Services to dev
     jobs:
       - template: /Deploy/azuredeploy.infra.yml
