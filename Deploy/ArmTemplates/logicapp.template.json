@@ -77,6 +77,18 @@
             "$connections": {
               "defaultValue": {},
               "type": "Object"
+            },
+            "creationProject": {
+              "type": "String",
+              "value": "[parameters('AzDevOpsCreationProject')]"
+            },
+            "organization": {
+              "type": "String",
+              "value": "[parameters('AzDevOpsOrga')]"
+            },
+            "projectTeam": {
+              "type": "String",
+              "value": "[parameters('AzDevOpsCreationProjectTeam')]"
             }
           },
           "triggers": {
@@ -94,10 +106,10 @@
                   }
                 },
                 "method": "get",
-                "path": "[concat('/v2/workitemupdated_trigger/@{encodeURIComponent(''',parameters('AzDevOpsCreationProject'),''')}/_apis/wit/wiql')]",
+                "path": "/v2/workitemupdated_trigger/@{encodeURIComponent('@parameters('creationProject')')}/_apis/wit/wiql",
                 "queries": {
-                  "account": "[parameters('AzDevOpsOrga')]",
-                  "team": "[parameters('AzDevOpsCreationProjectTeam')]",
+                  "account": "@parameters('organization')",
+                  "team": "@parameters('projectTeam')",
                   "wiql__System_State": "Approved",
                   "wiql__System_WorkItemType": "Project"
                 }
