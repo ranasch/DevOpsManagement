@@ -110,7 +110,7 @@ jobs:
                   az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
                   az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
 
-                  echo Remove access
+                  echo "Remove access"
                   az keyvault delete-policy -n $(kvName) --object-id $principalObjectId
 
 
