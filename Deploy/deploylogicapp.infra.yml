@@ -5,6 +5,8 @@ parameters:
   location: ""
   mode: ""
   armtemplate: ""
+  storageaccountname: ""
+  storageaccountkey: ""
   devopsorga: ""
   creationproject: ""
   creationteam: ""
@@ -22,4 +24,9 @@ steps:
       templateLocation: Linked artifact
       csmFile: ${{ parameters.armtemplate }}
       deploymentMode: ${{ parameters.mode }}
-      overrideParameters: -AzDevOpsOrga "${{ parameters.devopsorga }}" -AzDevOpsCreationProject "${{ parameters.creationproject }}" -AzDevOpsCreationProjectTeam "${{ parameters.creationteam }}"
+      overrideParameters: |
+        -AzDevOpsOrga "${{ parameters.devopsorga }}" 
+        -AzDevOpsCreationProject "${{ parameters.creationproject }}" 
+        -AzDevOpsCreationProjectTeam "${{ parameters.creationteam }}" 
+        -storageAccounts_name "${{ parameters.storageaccountname }}"
+        -storageAccounts_key "${{ parameters.storageaccountkey }}"
