@@ -102,16 +102,20 @@ jobs:
                   echo "Grant access"
                   $sp=az account show --query user.name
                   $principalObjectId=az ad sp show --id $sp --query objectId
-
                   az keyvault set-policy -n $(kvName) --secret-permissions set --object-id $principalObjectId
                   
                   echo Add secrets
                   $storageConnectionString=az storage account show-connection-string --name $(storageName) --query connectionString
+                  
                   az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
                   az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
 
                   echo "Remove access"
                   az keyvault delete-policy -n $(kvName) --object-id $principalObjectId
+
+                  echo "Provide Access key"
+                  $storageAccountKey1=az storage account keys list -n zfzstordev --query [0].value
+                  echo "##vso[task.setvariable variable=StorageAccountKey;isSecret]$storageAccountKey1"
 
             - template: deploylogicapp.infra.yml
               parameters:
@@ -123,6 +127,8 @@ jobs:
                 devopsorga: "$(VSTSOrganization)"
                 creationproject: "$(MANAGEMENT_PROJECT_NAME)"
                 creationteam: "$(MANAGEMENT_PROJECT_TEAM_NAME)"
+                storageaccountname: "$(storageName)"
+                storageaccountkey: "$(StorageAccountKey)"
                 armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/logicapp.template.json
                 stage: $(env)
 
