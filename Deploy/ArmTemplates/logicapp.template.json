@@ -15,10 +15,12 @@
       "type": "String"
     },
     "storageAccounts_name": {
-      "type": "String"
+      "type": "String",
+      "defaultValue": "tmpstoragename1"
     },
     "storageAccounts_key": {
-      "type": "String"
+      "type": "String",
+      "defaultValue": "0Z2Mf7duKd+/oPMaFhdj47elakw8ujw1qg5eNOoE0ixuOYWJWJcPDXTavX2vJnNRXX2n6nzhirz2urCXGrOiN/A=="
     }
   },
   "variables": {
