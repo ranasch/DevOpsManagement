@@ -103,7 +103,6 @@ jobs:
                   $sp=az account show --query user.name
                   $principalObjectId=az ad sp show --id $sp --query objectId
 
-                  $principalObjectId=az ad signed-in-user show --query objectId
                   az keyvault set-policy -n $(kvName) --secret-permissions set --object-id $principalObjectId
                   
                   echo Add secrets
