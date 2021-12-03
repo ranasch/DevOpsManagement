@@ -15,8 +15,7 @@
       "type": "String"
     },
     "storageAccounts_name": {
-      "type": "String",
-      "defaultValue": "tmpstoragename1"
+      "type": "String"
     },
     "storageAccounts_key": {
       "type": "securestring"
@@ -79,13 +78,13 @@
               "type": "Object"
             },
             "creationProject": {
-              "value": "[parameters('AzDevOpsCreationProject')]"
+              "type": "String"
             },
             "organization": {
-              "value": "[parameters('AzDevOpsOrga')]"
+              "type": "String"
             },
             "projectTeam": {
-              "value": "[parameters('AzDevOpsCreationProjectTeam')]"
+              "type": "String"
             }
           },
           "triggers": {
@@ -169,6 +168,15 @@
                 "connectionName": "visualstudioteamservices",
                 "id": "[concat('/subscriptions/',subscription().id,'/providers/Microsoft.Web/locations/',resourceGroup().location,'/managedApis/visualstudioteamservices')]"
               }
+            },
+            "creationProject": {
+              "value": "[parameters('AzDevOpsCreationProject')]"
+            },
+            "organization": {
+              "value": "[parameters('AzDevOpsOrga')]"
+            },
+            "projectTeam": {
+              "value": "[parameters('AzDevOpsCreationProjectTeam')]"
             }
           }
         }
