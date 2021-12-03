@@ -168,16 +168,16 @@
                 "connectionName": "visualstudioteamservices",
                 "id": "[concat('/subscriptions/',subscription().id,'/providers/Microsoft.Web/locations/',resourceGroup().location,'/managedApis/visualstudioteamservices')]"
               }
-            },
-            "creationProject": {
-              "value": "[parameters('AzDevOpsCreationProject')]"
-            },
-            "organization": {
-              "value": "[parameters('AzDevOpsOrga')]"
-            },
-            "projectTeam": {
-              "value": "[parameters('AzDevOpsCreationProjectTeam')]"
             }
+          },
+          "creationProject": {
+            "value": "[parameters('AzDevOpsCreationProject')]"
+          },
+          "organization": {
+            "value": "[parameters('AzDevOpsOrga')]"
+          },
+          "projectTeam": {
+            "value": "[parameters('AzDevOpsCreationProjectTeam')]"
           }
         }
       }
