@@ -91,17 +91,17 @@ stages:
                   },
                   {
                     "name": "VSTSOrganization",
-                    "value": "pocit",
+                    "value": "$(VSTSOrganization)",
                     "slotSetting": false
                   },
                   {
                     "name": "MANAGEMENT_PROJECT_NAME",
-                    "value": "zfProjectCreation",
+                    "value": "$(MANAGEMENT_PROJECT_NAME)",
                     "slotSetting": false
                   },
                   {
                     "name": "MANAGEMENT_PROJECT_TEAM_NAME",
-                    "value": "zfProjectCreation%20Team",
+                    "value": "$(MANAGEMENT_PROJECT_TEAM_NAME)",
                     "slotSetting": false
                   },
                   {

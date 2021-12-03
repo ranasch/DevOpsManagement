@@ -70,7 +70,7 @@ jobs:
                 stage: $(env)
 
             - task: AzureCLI@2
-              displayName: "Get Function Managed Identity"
+              displayName: "Get Function Managed Identity for KeyVault"
               inputs:
                 azureSubscription: ${{ parameters.serviceConnection }}
                 scriptType: "pscore"
@@ -91,7 +91,7 @@ jobs:
                 appmanagedIdentity: $(AzureFunctionManagedIdentity)
                 armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/keyVault.template.json
                 stage: $(env)
-
+                 
             - task: AzureCLI@2
               displayName: "Add Secrets to KeyVault"
               inputs:
@@ -99,6 +99,16 @@ jobs:
                 scriptType: "pscore"
                 scriptLocation: "inlineScript"
                 inlineScript: |
+                  echo Grant access                  
+                  $principalObjectId=az ad signed-in-user show --query objectId
+                  az keyvault set-policy -n zfx-dev --secret-permissions set --object-id $principalObjectId
+                  
+                  echo Add secrets
                   $storageConnectionString=az storage account show-connection-string --name $(storageName) --query connectionString
                   az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
                   az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
+
+                  echo Remove access
+                  az keyvault delete-policy -n zfx-dev --object-id $principalObjectId
+
+

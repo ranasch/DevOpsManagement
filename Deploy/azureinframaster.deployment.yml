@@ -81,7 +81,7 @@ stages:
     condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
     displayName: Deploy Shared azdo Services to dev
     jobs:
-      - template: /Deploy/azuredeploy.infra.yml
+      - template: /Deploy/deploystage.infra.yml
         parameters:
           stage: dev
           serviceConnection: ${{ variables.devServiceConnection }}
