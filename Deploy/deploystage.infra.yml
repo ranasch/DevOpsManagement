@@ -31,27 +31,6 @@ jobs:
       runOnce:
         deploy:
           steps:
-            - task: AzureCLI@2
-              displayName: "DEBUG ONLY"
-              inputs:
-                azureSubscription: ${{ parameters.serviceConnection }}
-                scriptType: "pscore"
-                scriptLocation: "inlineScript"
-                inlineScript: |
-                  echo "Grant access"
-                  echo "1 Get signed-in user:"
-                  az ad signed-in-user show 
-                  echo "2 assign:"
-                  $principalObjectId=az ad signed-in-user show --query objectId
-                  echo "3 Current user"
-                  az account show --query user.name
-                  echo "4 Context"
-                  $x = (Get-AzContext).Account.Id
-                  echo $x
-                  echo "5 Obejct Id"
-                  $y = Get-AzADServicePrincipal -ApplicationId $x
-                  echo $y.Id
-
             - download: current
               artifact: devopsAutomationArtifacts
 
