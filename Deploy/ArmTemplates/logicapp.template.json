@@ -19,8 +19,7 @@
       "defaultValue": "tmpstoragename1"
     },
     "storageAccounts_key": {
-      "type": "String",
-      "defaultValue": "0Z2Mf7duKd+/oPMaFhdj47elakw8ujw1qg5eNOoE0ixuOYWJWJcPDXTavX2vJnNRXX2n6nzhirz2urCXGrOiN/A=="
+      "type": "securestring"
     }
   },
   "variables": {
@@ -36,7 +35,7 @@
       "location": "[resourceGroup().location]",
       "kind": "V1",
       "properties": {
-        "displayName": "azurequeues",
+        "displayName": "[variables('azureQueueName')]",
         "parameterValues": {
           "accountName": "[parameters('storageAccounts_name')]",
           "accessKey": "[parameters('storageAccounts_key')]"
@@ -53,7 +52,7 @@
       "location": "[resourceGroup().location]",
       "kind": "V1",
       "properties": {
-        "displayName": "visualstudioteamservices",
+        "displayName": "[variables('azureDevOpsName')]",
         "api": {
           "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', resourceGroup().location , '/managedApis/visualstudioteamservices')]"
         }
