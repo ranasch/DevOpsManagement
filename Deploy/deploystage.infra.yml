@@ -99,9 +99,10 @@ jobs:
                 scriptType: "pscore"
                 scriptLocation: "inlineScript"
                 inlineScript: |
-                  echo Grant access                  
+                  echo "Grant access"
                   $principalObjectId=az ad signed-in-user show --query objectId
-                  az keyvault set-policy -n zfx-dev --secret-permissions set --object-id $principalObjectId
+                  echo "DEBUG: Grant access to $principalObjectId"
+                  az keyvault set-policy -n $(kvName) --secret-permissions set --object-id $principalObjectId
                   
                   echo Add secrets
                   $storageConnectionString=az storage account show-connection-string --name $(storageName) --query connectionString
@@ -109,6 +110,6 @@ jobs:
                   az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
 
                   echo Remove access
-                  az keyvault delete-policy -n zfx-dev --object-id $principalObjectId
+                  az keyvault delete-policy -n $(kvName) --object-id $principalObjectId
 
 
