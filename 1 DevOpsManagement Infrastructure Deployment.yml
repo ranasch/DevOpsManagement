@@ -1,0 +1,94 @@
+name: $(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  - master  
+
+variables:
+  - group: azdo-dev
+  - name: devServiceConnection
+    value: DevStageServiceConnection
+  - name: vmImageName
+    value: 'ubuntu-latest'
+
+stages:
+  - stage: Validation
+    dependsOn: []
+    jobs:
+      - job: "prepare"
+        steps:
+          - pwsh: |
+              $randomString=[guid]::NewGuid().ToString().Substring(24,5)
+              Write-Host "##vso[task.setvariable variable=randomName;isSecret=false;]$randomString"
+              Write-Host "##vso[task.setvariable variable=uniqueName;isOutput=true;]$randomString"
+            name: initialize
+
+          # Test templates
+
+          # - template: /Deploy/deploystorage.infra.yml
+          #   parameters:
+          #     serviceConnection: ${{ variables.devServiceConnection }}
+          #     resourceGroup: azdo-validation-$(randomName)
+          #     subscriptionId: $(devSubscriptionId)
+          #     location: $(location)
+          #     mode: Validation
+          #     name: azdostor$(randomName)
+          #     stage: validation
+          #     armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/storage.template.json
+
+          # - template: /Deploy/deployinsights.infra.yml
+          #   parameters:
+          #     serviceConnection: ${{ variables.devServiceConnection }}
+          #     resourceGroup: azdo-validation-$(randomName)
+          #     subscriptionId: $(devSubscriptionId)
+          #     location: $(location)
+          #     mode: Validation
+          #     name: azdoinsights-$(randomName)
+          #     stage: validation
+          #     armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/insights.template.json
+
+          # - template: /Deploy/deploykeyvault.infra.yml
+          #   parameters:
+          #     serviceConnection: ${{ variables.devServiceConnection }}
+          #     resourceGroup: azdo-validation-$(randomName)
+          #     subscriptionId: $(devSubscriptionId)
+          #     location: $(location)
+          #     mode: Validation
+          #     name: azdokv-$(randomName)
+          #     stage: validation
+          #     armtemplate: $(System.DefaultWorkingDirectory)/Deploy/ArmTemplates/keyVault.template.json
+
+          - publish: $(System.DefaultWorkingDirectory)
+            artifact: devopsAutomationArtifacts
+
+      # - job: "cleanup"
+      #   variables:
+      #     randName: $[ dependencies.prepare.outputs['initialize.uniqueName'] ]
+      #   dependsOn: "prepare"
+      #   condition: succeededOrFailed('prepare')
+      #   steps:
+      #     - task: AzureCLI@2
+      #       displayName: "Cleanup ResourceGroups"
+      #       inputs:
+      #         azureSubscription: ${{ variables.devServiceConnection }}
+      #         scriptType: "pscore"
+      #         scriptLocation: "inlineScript"
+      #         inlineScript: |
+      #           az group delete -n azdo-validation-$(randName) -y
+  - stage: Dev
+    dependsOn: Validation
+    variables:
+    - group: azdo-dev
+    condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
+    displayName: Deploy Shared azdo Services to dev
+    jobs:
+      - template: /Deploy/deploystage.infra.yml
+        parameters:
+          stage: dev
+          serviceConnection: ${{ variables.devServiceConnection }}
+          subscriptionId: $(devSubscriptionId)
+          resourceGroup: $(resourceGroupName)
+          location: $(location)          
+          mode: Incremental
+          resourcePrefix: $(resourcePrefix)
+          library: azdo-dev
+
