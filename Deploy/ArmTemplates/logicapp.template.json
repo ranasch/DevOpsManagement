@@ -102,7 +102,7 @@
                   }
                 },
                 "method": "get",
-                "path": "/v2/workitemupdated_trigger/@{encodeURIComponent('@parameters('creationProject')')}/_apis/wit/wiql",
+                "path": "/v2/workitemupdated_trigger/@parameters('creationProject')/_apis/wit/wiql",
                 "queries": {
                   "account": "@parameters('organization')",
                   "team": "@parameters('projectTeam')",
