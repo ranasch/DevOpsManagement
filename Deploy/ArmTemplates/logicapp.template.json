@@ -79,15 +79,12 @@
               "type": "Object"
             },
             "creationProject": {
-              "type": "String",
               "value": "[parameters('AzDevOpsCreationProject')]"
             },
             "organization": {
-              "type": "String",
               "value": "[parameters('AzDevOpsOrga')]"
             },
             "projectTeam": {
-              "type": "String",
               "value": "[parameters('AzDevOpsCreationProjectTeam')]"
             }
           },
