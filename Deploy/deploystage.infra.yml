@@ -113,4 +113,17 @@ jobs:
                   echo "Remove access"
                   az keyvault delete-policy -n $(kvName) --object-id $principalObjectId
 
+            - template: deploylogicapp.infra.yml
+              parameters:
+                serviceConnection: ${{ parameters.serviceConnection }}
+                subscriptionId: ${{ parameters.subscriptionId }}
+                resourceGroup: ${{ parameters.resourceGroup }}
+                location: ${{ parameters.location }}
+                mode: ${{ parameters.mode }}
+                devopsorga: "$(VSTSOrganization)"
+                creationproject: "$(MANAGEMENT_PROJECT_NAME)"
+                creationteam: "$(MANAGEMENT_PROJECT_TEAM_NAME)"
+                armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/logicapp.template.json
+                stage: $(env)
+
 

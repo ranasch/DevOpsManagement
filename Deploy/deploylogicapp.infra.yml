@@ -4,13 +4,14 @@ parameters:
   resourceGroup: ""
   location: ""
   mode: ""
-  name: ""
   armtemplate: ""
-  appmanagedIdentity: ""
+  devopsorga: ""
+  creationproject: ""
+  creationteam: ""
 
 steps:
   - task: AzureResourceManagerTemplateDeployment@3
-    displayName: "Deploy: Azure KeyVault"
+    displayName: "Deploy: Azure LogicApp"
     inputs:
       deploymentScope: Resource Group
       azureResourceManagerConnection: ${{ parameters.serviceConnection }}
@@ -21,4 +22,4 @@ steps:
       templateLocation: Linked artifact
       csmFile: ${{ parameters.armtemplate }}
       deploymentMode: ${{ parameters.mode }}
-      overrideParameters: -keyVaultName "${{ parameters.name }}" -enabledForTemplateDeployment true -objectId ${{ parameters.appmanagedIdentity }} -location "$(location)"
+      overrideParameters: -AzDevOpsOrga "${{ parameters.devopsorga }}" -AzDevOpsCreationProject "$ {{ parameters.creationproject }}" -AzDevOpsCreationProjectTeam "{{ parameters.creationteam }}"

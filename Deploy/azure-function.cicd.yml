@@ -8,6 +8,7 @@ trigger:
   paths:
     exclude:
     - /Deploy/*
+    - Readme.md
 
 variables:
   - group: azdo-dev
