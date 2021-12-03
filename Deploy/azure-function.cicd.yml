@@ -1,7 +1,10 @@
 name: NetCore-CI-CD-zfAutomation
 
 trigger:
-- master
+  branches: 
+    - include: master
+  paths:
+    - include: /Deploy/*
 
 variables:
   - group: azdo-dev
