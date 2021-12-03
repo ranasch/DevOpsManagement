@@ -1,4 +1,4 @@
-name: NetCore-CI-CD-zfAutomation
+name: NetCore-CI-CD-DevOpsAutomation
 
 trigger:
   batch: true
