@@ -94,7 +94,7 @@
                   }
                 },
                 "method": "get",
-                "path": "[concat('/v2/workitemupdated_trigger/@{encodeURIComponent(',parameters('AzDevOpsCreationProject'),')}/_apis/wit/wiql')]",
+                "path": "[concat('/v2/workitemupdated_trigger/@{encodeURIComponent(''',parameters('AzDevOpsCreationProject'),''')}/_apis/wit/wiql')]",
                 "queries": {
                   "account": "[parameters('AzDevOpsOrga')]",
                   "team": "[parameters('AzDevOpsCreationProjectTeam')]",
