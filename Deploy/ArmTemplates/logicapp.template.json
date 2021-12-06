@@ -266,7 +266,11 @@
               "type": "ApiConnection"
             },
             "Put_a_message_on_a_queue": {
-              "runAfter": {},
+              "runAfter": {
+                "Get_work_item_details": [
+                  "Succeeded"
+                ]
+              },
               "type": "ApiConnection",
               "inputs": {
                 "body": "{\n\"createType\": \"Repository\",\n\"workItemId\": @{triggerBody()?['fields']?['System_Id']},\n\"azp_Id\": @{body('Get_work_item_details')?['fields']?['Custom_AZP_ID']},\n\"projectName\": \"@{body('Get_work_item_details')?['fields']?['System_Title']}\",\n\"repositoryName\": \"@{triggerBody()?['fields']?['System_Title']}\",\n\"dataOwner1\": \"@{triggerBody()?['fields']?['Custom_DataOwner']}\", \n\"dataOwner2\": \"@{triggerBody()?['fields']?['Custom_DataOwner2']}\",\n\"requestor\": \"@{triggerBody()?['fields']?['Custom_Requestor']}\",\n\"costCenter\": \"@{body('Get_work_item_details')?['fields']?['Custom_CostCenter']}\",\n\"costCenterManager\": \"@{body('Get_work_item_details')?['fields']?['Custom_CostCenterManager']}\"\n}",
