@@ -106,9 +106,14 @@ jobs:
                   
                   echo Add secrets
                   $storageConnectionString=az storage account show-connection-string --name $(storageName) --query connectionString
-                  
-                  az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
-                  az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
+                  $currentConnectionString=az keyvault secret show --vault-name azd1-test --name "WebJobStorage" --query value
+                  if($currentConnectionString -ne $storageConnectionString) {
+                    az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
+                  }
+                  $currentPAT=az keyvault secret show --vault-name azd1-test --name "PAT" --query value
+                  if($currentPAT -ne "$(PAT)") {
+                    az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
+                  }
 
                   echo "Remove access"
                   az keyvault delete-policy -n $(kvName) --object-id $principalObjectId
