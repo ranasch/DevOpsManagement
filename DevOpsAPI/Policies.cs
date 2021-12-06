@@ -72,7 +72,7 @@
             {
                 // UPDATE existing policy
                 // PUT https://dev.azure.com/{organization}/{project}/_apis/policy/configurations/{configurationId}?api-version=6.0                
-                Configuration configPolicy = null;
+                Configuration configPolicy;
                 switch (policy)
                 {
                     case PolicyTypes.MINIMUM_NUMBER_OF_REVIEWERS:
@@ -164,7 +164,7 @@
                         return JsonDocument.Parse("{}");
                 }
 
-                return await UpdateBranchPolicy(organization, projectName, repositoryId, policyId, configPolicy, pat);
+                return await UpdateBranchPolicy(organization, projectName, policyId, configPolicy, pat);
             }
             else
             {
@@ -284,13 +284,13 @@
                         };
                         break;
                 }
-                return await CreateBranchPolicy(organization, projectName, repositoryId, configPolicy, pat);
+                return await CreateBranchPolicy(organization, projectName, configPolicy, pat);
             }
 
-            return JsonDocument.Parse("{}");
+            //return JsonDocument.Parse("{}");
         }
 
-        private static async Task<JsonDocument> CreateBranchPolicy(Url organization, string projectName, string repositoryId, Configuration policy, string pat)
+        private static async Task<JsonDocument> CreateBranchPolicy(Url organization, string projectName, Configuration policy, string pat)
         {
             var queryResponse = await $"{organization}"
                .AppendPathSegment(projectName)
@@ -306,7 +306,7 @@
                 return JsonDocument.Parse("{}");
         }
 
-        private static async Task<JsonDocument> UpdateBranchPolicy(Url organization, string projectName, string repositoryId, int configId, Configuration configuration, string pat)
+        private static async Task<JsonDocument> UpdateBranchPolicy(Url organization, string projectName, int configId, Configuration configuration, string pat)
         {
             var queryResponse = await $"{organization}"
                .AppendPathSegment(projectName)
@@ -351,7 +351,7 @@
 
         class RepoCreateConfiguration : RepoUpdateConfiguration
         {
-            public Type type { get; set; }
+            new public Type type { get; set; }
             public int revision { get; set; }
             public bool isDeleted { get; set; }
         }

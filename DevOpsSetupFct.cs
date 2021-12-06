@@ -12,6 +12,7 @@ namespace DevOpsManagement
     using System.Threading;
     using System.Text.RegularExpressions;
     using System.Net.Mail;
+    using Serilog;
 
     public class DevOpsSetupFct
     {
@@ -21,7 +22,6 @@ namespace DevOpsManagement
         private readonly string _pat;
         private readonly string _apiVersion;
         private readonly string _managementProjectId;
-        private ILogger _log;
 
         public DevOpsSetupFct(Appsettings settings)
         {
@@ -34,13 +34,12 @@ namespace DevOpsManagement
         }
 
         [FunctionName(Constants.SETUP_REPO)]
-        public async Task SetupRepository([QueueTrigger(Constants.StorageQueueName)] string setupDevOpsMessage, ILogger log)
+        public async Task SetupRepository([QueueTrigger(Constants.StorageQueueName)] string setupDevOpsMessage)
         {
-            _log = log;
-            _log.LogInformation($"*** Function {Constants.SETUP_REPO} triggered with message {setupDevOpsMessage} ***");
+            Log.Information($"*** Function {Constants.SETUP_REPO} triggered with message {setupDevOpsMessage} ***");
 
             string projectId="pending";
-            _log.LogDebug("*** Get Properties ***");
+            Log.Debug("*** Get Properties ***");
             var queueItem = JsonDocument.Parse(setupDevOpsMessage);
             var workItemId = queueItem.RootElement.GetProperty("workItemId").GetInt32();
             var createType = queueItem.RootElement.GetProperty("createType").GetString();
@@ -52,7 +51,7 @@ namespace DevOpsManagement
             var costCenterManager = queueItem.RootElement.GetProperty("costCenterManager").GetString();
 
             // Ensure, project name is not already used
-            _log.LogDebug("*** Validate Project Parameter ***");
+            Log.Debug("*** Validate Project Parameter ***");
             var allProjects = await Project.GetProjectsAsync(_organizationUrl, _pat);
             var projectNames = new List<string>();
             foreach (var projectNode in allProjects.RootElement.GetProperty("value").EnumerateArray())
@@ -85,7 +84,7 @@ namespace DevOpsManagement
                         }
 
                         // create new project
-                        _log.LogDebug("*** Create new project ***");
+                        Log.Debug("*** Create new project ***");
                         var nextId = AzIdCreator.Instance.NextAzId();
                         var projectDescription = queueItem.RootElement.GetProperty("projectDescription").GetString().Trim().Replace("<div>", "").Replace("</div>", "");
                         projectDescription = String.Concat(projectDescription,
@@ -107,27 +106,27 @@ namespace DevOpsManagement
                             {
                                 case "cancelled":
                                     pending = false;
-                                    _log.LogInformation("*** Project creation cancelled ***");
+                                    Log.Information("*** Project creation cancelled ***");
                                     break;
                                 case "failed":
                                     pending = false;
-                                    _log.LogError("*** Project creation failed ***");
+                                    Log.Error("*** Project creation failed ***");
                                     break;
                                 case "succeeded":
                                     pending = false;
-                                    _log.LogDebug("*** Project creation succeeded ***");
+                                    Log.Debug("*** Project creation succeeded ***");
                                     var project = await Project.GetProjectAsync(_organizationUrl, zfProjectName, _pat);
                                     projectId = project.RootElement.GetProperty("id").GetString();
                                     break;
                                 default:
-                                    _log.LogDebug("*** Project creation pending ***");
+                                    Log.Debug("*** Project creation pending ***");
                                     Thread.Sleep(5000);
                                     break;
                             }
                         } while (pending);
 
                         // Create Project Groups
-                        _log.LogDebug("*** Trigger special group creations ***");
+                        Log.Debug("*** Trigger special group creations ***");
                         await Project.TriggerEndpointAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
                         await Project.TriggerDeploymentGroupAdminGroupCreationAsync(_organizationUrl, projectId, _pat);
                         await Project.TriggerReleaseAdminGroupCreationAsync(_organizationName, zfProjectName, _pat);                        
@@ -136,7 +135,7 @@ namespace DevOpsManagement
                         var projectDescriptor = projectDescriptors.RootElement.GetProperty("value").GetString();
                         var defaultProjectGroups = await Graph.GetAzDevOpsGroupsAsync(_organizationName, projectDescriptor, _pat);
 
-                        _log.LogDebug("*** Get Group Descriptors ***");
+                        Log.Debug("*** Get Group Descriptors ***");
                         var defaultGroups = new Dictionary<string, string>();                        
                         foreach(var group in defaultProjectGroups.RootElement.GetProperty("value").EnumerateArray())
                         {
@@ -151,7 +150,7 @@ namespace DevOpsManagement
                         var readers = defaultGroups.First(d => d.Key == "Readers");
                         var projectAdmins = defaultGroups.First(d => d.Key == "Project Administrators");
 
-                        _log.LogDebug("*** Create Groups ***");
+                        Log.Debug("*** Create Groups ***");
                         var projectConsumerGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.Proj_Consumer, nextId), new[] { readers.Value }, _pat);
                         var projectMaintDeveloperGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.ProjMaint_Developer, nextId), new[] { contributors.Value }, _pat);
                         var projectMaintAdminsGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.ProjMaint_Adminstrator, nextId), new[] { projectAdmins.Value }, _pat);
@@ -173,7 +172,7 @@ namespace DevOpsManagement
                         var infraMaintAdminGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.InfraMaint_Administrator, nextId), joinedGroups, _pat);
 
                         // Finish up
-                        _log.LogDebug("*** Update Workitem Status ***");
+                        Log.Debug("*** Update Workitem Status ***");
                         await UpdateWorkItemStatus(wiType.project, workItemId, nextId, zfProjectName);
                         var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\">{zfProjectName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;
@@ -190,7 +189,7 @@ namespace DevOpsManagement
                         try
                         {
                             projectId = currentProject.RootElement.GetProperty("id").GetString();
-                            log.LogDebug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
+                            Log.Debug($"Current project is {currentProject.RootElement.GetProperty("name").GetString()}, id: {projectId}");
                         }
                         catch
                         {

@@ -5,6 +5,7 @@
     public class Appsettings
     {
         private static Uri _orgaUrl;
+        public string APPINSIGHTS_INSTRUMENTATIONKEY { get; set; }
         public string VSTSApiVersion { get; set; }
         public string VSTSOrganization { get; set; }
         public string PAT { get; set; }
