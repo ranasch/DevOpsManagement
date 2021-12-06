@@ -155,7 +155,7 @@
                 "method": "patch",
                 "path": "/_apis/wit/workitems/@{encodeURIComponent(triggerBody()?['fields']?['System_Id'])}",
                 "queries": {
-                  "account": "@parameters('$organization')"
+                  "account": "@parameters('organization')"
                 }
               }
             }
