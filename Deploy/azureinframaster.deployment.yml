@@ -98,3 +98,20 @@ stages:
           resourcePrefix: $(resourcePrefix)
           library: azdo-dev
 
+  - stage: Test
+    dependsOn: Dev
+    variables:
+    - group: azdo-test
+    condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
+    displayName: Deploy Shared azdo Services to test
+    jobs:
+      - template: /Deploy/deploystage.infra.yml
+        parameters:
+          stage: dev
+          serviceConnection: ${{ variables.devServiceConnection }}
+          subscriptionId: $(devSubscriptionId)
+          resourceGroup: $(resourceGroupName)
+          location: $(location)          
+          mode: Incremental
+          resourcePrefix: $(resourcePrefix)
+          library: azdo-test
