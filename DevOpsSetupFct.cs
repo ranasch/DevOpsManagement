@@ -200,7 +200,9 @@ namespace DevOpsManagement
 
                         await Repository.CreateCompliantRepositoryAsync(_organizationName, _organizationUrl, projectName, repoName, projectId, _pat);
 
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                         UpdateWorkItemStatus(wiType.repo, workItemId);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                         var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, workItemId, $"Repository <a href=\"{_organizationUrl}/{projectName}/_git/{repoName}\">{repoName}</a> is provisioned and ready to use.", requestor, _pat);
                         break;
                     }

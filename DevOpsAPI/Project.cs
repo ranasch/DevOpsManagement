@@ -57,7 +57,7 @@
                 else
                     return JsonDocument.Parse("{}");
             }
-            catch (Exception ex) { return JsonDocument.Parse("{}"); }
+            catch (Exception) { return JsonDocument.Parse("{}"); }
 
         }
 
@@ -246,7 +246,7 @@
                     var workItem = await GetWorkItemByIdAsync(organizationName, projectName, workItemWithmaxAzId, pat);
                     azid = workItem.RootElement.GetProperty("fields").GetProperty("Custom.AZP_ID").GetInt32();
                 }
-                catch (InvalidOperationException ex)
+                catch (InvalidOperationException)
                 { azid = 0; }
             }
             else // no az_id found --> start with 0
@@ -272,7 +272,7 @@
                 else
                     return JsonDocument.Parse("{}");
             }
-            catch (Exception ex) { return JsonDocument.Parse("{}"); }
+            catch (Exception) { return JsonDocument.Parse("{}"); }
 
         }
 
@@ -396,7 +396,7 @@
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
             {
-                var definitionId= JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetInt32();
+                var definitionId = JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetInt32();
                 var deleteResponse = await $"https://vsrm.dev.azure.com/{orgaName}"
                     .AppendPathSegment(projectName)
                     .AppendPathSegment($"_apis/Release/definitions/{definitionId}")
