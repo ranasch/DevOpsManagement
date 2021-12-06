@@ -128,8 +128,7 @@ jobs:
                 creationproject: "$(MANAGEMENT_PROJECT_NAME)"
                 creationteam: "$(MANAGEMENT_PROJECT_TEAM_NAME)"
                 storageaccountname: "$(storageName)"
-                storageaccountkey: "$(StorageAccountKey)"
                 armtemplate: $(Pipeline.Workspace)/devopsAutomationArtifacts/Deploy/ArmTemplates/logicapp.template.json
                 stage: $(env)
-
+                resourcePrefix: ${{ parameters.resourcePrefix }}
 

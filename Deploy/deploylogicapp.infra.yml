@@ -6,10 +6,10 @@ parameters:
   mode: ""
   armtemplate: ""
   storageaccountname: ""
-  storageaccountkey: ""
   devopsorga: ""
   creationproject: ""
   creationteam: ""
+  resourcePrefix: ""
 
 steps:
   - task: AzureResourceManagerTemplateDeployment@3
@@ -24,4 +24,4 @@ steps:
       templateLocation: Linked artifact
       csmFile: ${{ parameters.armtemplate }}
       deploymentMode: ${{ parameters.mode }}
-      overrideParameters: -AzDevOpsOrga "${{ parameters.devopsorga }}" -AzDevOpsCreationProject "${{ parameters.creationproject }}" -AzDevOpsCreationProjectTeam "${{ parameters.creationteam }}" -storageAccounts_name "${{ parameters.storageaccountname }}" -storageAccounts_key "${{ parameters.storageaccountkey }}"
+      overrideParameters: -AzDevOpsOrga "${{ parameters.devopsorga }}" -AzDevOpsCreationProject "${{ parameters.creationproject }}" -AzDevOpsCreationProjectTeam "${{ parameters.creationteam }}" -StorageAccounts_name "${{ parameters.storageaccountname }}" -ResourcePrefix "${{ Parameters.resourcePrefix }}"
