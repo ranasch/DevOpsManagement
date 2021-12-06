@@ -106,11 +106,11 @@ jobs:
                   
                   echo Add secrets
                   $storageConnectionString=az storage account show-connection-string --name $(storageName) --query connectionString
-                  $currentConnectionString=az keyvault secret show --vault-name azd1-test --name "WebJobStorage" --query value
+                  $currentConnectionString=az keyvault secret show --vault-name azd1-test --name "WebJobStorage" --query value -o tsv
                   if($currentConnectionString -ne $storageConnectionString) {
                     az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
                   }
-                  $currentPAT=az keyvault secret show --vault-name azd1-test --name "PAT" --query value
+                  $currentPAT=az keyvault secret show --vault-name azd1-test --name "PAT" --query value -o tsv
                   if($currentPAT -ne "$(PAT)") {
                     az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
                   }
