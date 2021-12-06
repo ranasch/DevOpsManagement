@@ -107,7 +107,7 @@ stages:
     jobs:
       - template: /Deploy/deploystage.infra.yml
         parameters:
-          stage: dev
+          stage: test
           serviceConnection: ${{ variables.devServiceConnection }}
           subscriptionId: $(devSubscriptionId)
           resourceGroup: $(resourceGroupName)

@@ -60,7 +60,7 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    environment: azdo-$(env)
+    environment: azdo-dev
     pool:
       vmImage: $(vmImageName)
 
@@ -129,7 +129,7 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    environment: azdo-$(env)
+    environment: azdo-test
     pool:
       vmImage: $(vmImageName)
 
