@@ -21,6 +21,7 @@ variables:
 
 stages:
 - stage: Build
+  lockBehavior: runLatest
   displayName: Build stage
 
   jobs:
