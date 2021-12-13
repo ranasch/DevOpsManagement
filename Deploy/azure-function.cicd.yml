@@ -51,7 +51,7 @@ stages:
       artifact: drop
 
 - stage: Dev
-  lockBehavior: runLatest
+  lockBehavior: sequential
   variables:
     - group: azdo-dev
   displayName: Deploy stage
@@ -121,6 +121,7 @@ stages:
                 ]
 
 - stage: Test
+  lockBehavior: runLatest
   variables:
     - group: azdo-test
   displayName: Deploy test stage
