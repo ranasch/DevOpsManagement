@@ -19,6 +19,7 @@ variables:
   - name: workingDirectory
     value: '$(System.DefaultWorkingDirectory)/'
 
+lockBehavior: runLatest
 stages:
 - stage: Build
   displayName: Build stage
