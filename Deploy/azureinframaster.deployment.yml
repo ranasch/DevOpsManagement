@@ -16,7 +16,6 @@ variables:
   - name: vmImageName
     value: 'ubuntu-latest'
 
-lockBehavior: runLatest
 stages:
   - stage: Validation
     dependsOn: []
