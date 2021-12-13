@@ -21,7 +21,6 @@ variables:
 
 stages:
 - stage: Build
-  lockBehavior: runLatest
   displayName: Build stage
 
   jobs:
@@ -52,6 +51,7 @@ stages:
       artifact: drop
 
 - stage: Dev
+  lockBehavior: runLatest
   variables:
     - group: azdo-dev
   displayName: Deploy stage
