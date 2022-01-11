@@ -21,6 +21,7 @@ namespace DevOpsManagement
         {
             var config = new ConfigurationBuilder()
                .SetBasePath(Environment.CurrentDirectory)
+               .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
                .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
                .AddEnvironmentVariables()
                .AddUserSecrets<Startup>(true, true)
@@ -39,10 +40,10 @@ namespace DevOpsManagement
             };
 
             TelemetryDebugWriter.IsTracingDisabled = true;
-
+            
             // provide static logger instance as soon as possible
             Log.Logger = new LoggerConfiguration()
-                //.ReadFrom.Configuration(configuration)
+                .ReadFrom.Configuration(config)
                 .Enrich.FromLogContext()
                 .WriteTo.Console()
                 .WriteTo.ApplicationInsights(appSettings.APPINSIGHTS_INSTRUMENTATIONKEY, TelemetryConverter.Traces)
@@ -51,23 +52,29 @@ namespace DevOpsManagement
             Log.Information("*** Starting DevOps Management ***");
 
             // Initialisze ManagementProjectId
+            Log.Information($"Using these settings:\nOrganizationUrl: {appSettings.VSTSOrganizationUrl}\nManagementProject: {appSettings.ManagementProjectName}\nPAT (starting with {appSettings.PAT.Substring(0,4)}***\nTeam: {appSettings.ManagementProjectTeam}");
             var managementProjectTask = Project.GetProjectAsync(appSettings.VSTSOrganizationUrl, appSettings.ManagementProjectName, appSettings.PAT);
             var managementProjectId = managementProjectTask.GetAwaiter().GetResult();
             appSettings.ManagementProjectId= managementProjectId.RootElement.GetProperty("id").GetString();
+            Log.Information($"Management project id: {appSettings.ManagementProjectId}");
 
             //var appSettings = config.GetSection("AppSettings").Get<Appsettings>();
             builder.Services.AddSingleton(appSettings);
 
             // Create queue if not exists
+            Log.Information("Get storage account for queues");
             var storage = config.GetValue<string>("AzureWebJobsStorage");
             var storageAccount = CloudStorageAccount.Parse(storage);
             var qc = storageAccount.CreateCloudQueueClient();
+            Log.Information($"Using storage account {storageAccount.QueueEndpoint.Host}");
             var queue = qc.GetQueueReference(Constants.StorageQueueName);
             queue.CreateIfNotExistsAsync(null, null).Wait();
+            Log.Information($"Queue {queue.Name} now available");
 
             // Seed AZID
             var azidTask = Project.GetMaxAzIdForEnvironment(appSettings.VSTSOrganization, appSettings.ManagementProjectName, appSettings.ManagementProjectTeam, appSettings.PAT);
             var azid = azidTask.GetAwaiter().GetResult();
+            Log.Information($"Found current AZP_ID = {azid}");
             var azidinstance = Tools.AzIdCreator.Instance;
             azidinstance.EnvironmentSeed=azid;
 

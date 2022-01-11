@@ -2,6 +2,7 @@
 {
     using Flurl;
     using Flurl.Http;
+    using Serilog;
     using System;
     using System.Linq;
     using System.Text.Json;
@@ -42,23 +43,25 @@
 
         public static async Task<JsonDocument> GetProjectAsync(Url _organization, string projectName, string pat)
         {
-            try
+            string responseContent = "";
+            // GET https://dev.azure.com/{organization}/_apis/projects/{projectId}/properties?api-version=6.1-preview.1
+            var queryResponse = await $"{_organization}"
+                .AppendPathSegment($"_apis/projects/{projectName}")
+                .SetQueryParam("api-version", Constants.APIVERSION)
+                .WithBasicAuth(string.Empty, pat)
+                .GetAsync();
+
+            if (queryResponse.ResponseMessage.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                // GET https://dev.azure.com/{organization}/_apis/projects/{projectId}/properties?api-version=6.1-preview.1
-                var queryResponse = await $"{_organization}"
-                    .AppendPathSegment($"_apis/projects/{projectName}")
-                    .SetQueryParam("api-version", Constants.APIVERSION)
-                    .WithBasicAuth(string.Empty, pat)
-                    .AllowAnyHttpStatus()
-                    .GetAsync();
-
-                if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                    return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-                else
-                    return JsonDocument.Parse("{}");
+                responseContent = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
+                Log.Information("Query result = {@received}", responseContent);
+                return JsonDocument.Parse(responseContent);
             }
-            catch (Exception) { return JsonDocument.Parse("{}"); }
-
+            else
+            {
+                Log.Error("Query result Status {0}= {@received}", queryResponse.ResponseMessage.StatusCode.ToString(), responseContent);
+                throw new ApplicationException($"Cannot retrieve project details for project \"{projectName}\" in \"{_organization}\" with pat starting with \"{pat.Substring(0, 4)}\"");
+            }
         }
 
         public static async Task<JsonDocument> GetProjectByNameAsync(Url _organization, string projectName, string pat)
