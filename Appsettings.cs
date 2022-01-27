@@ -25,5 +25,6 @@
                 return _orgaUrl;
             } 
         }
+        public string ProcessTemplateId { get; set; } 
     }
 }

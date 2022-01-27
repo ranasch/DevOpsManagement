@@ -98,7 +98,7 @@ namespace DevOpsManagement
                             $"\nCost Center Manager: {costCenterManager}");
                         var zfProjectName = string.Format(Constants.PROJECT_PREFIX, nextId.ToString("D3")) + projectName;
                         Log.Information($"*** Creating project {zfProjectName} ***");
-                        var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, Constants.PROCESS_TEMPLATE_ID, _pat);
+                        var operationsId = await Project.CreateProjectsAsync(_organizationUrl, zfProjectName, projectDescription, _config.ProcessTemplateId, _pat);
 
                         var pending = true;
                         var resultStatus = "";

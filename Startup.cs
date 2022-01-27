@@ -36,7 +36,8 @@ namespace DevOpsManagement
                 VSTSOrganization = config["VSTSOrganization"],
                 ManagementProjectName = config["MANAGEMENT_PROJECT_NAME"],
                 ManagementProjectTeam = config["MANAGEMENT_PROJECT_TEAM_NAME"],
-                APPINSIGHTS_INSTRUMENTATIONKEY = config["APPINSIGHTS_INSTRUMENTATIONKEY"]
+                APPINSIGHTS_INSTRUMENTATIONKEY = config["APPINSIGHTS_INSTRUMENTATIONKEY"],
+                ProcessTemplateId=config["ProcessTemplateId"]
             };
 
             TelemetryDebugWriter.IsTracingDisabled = true;
