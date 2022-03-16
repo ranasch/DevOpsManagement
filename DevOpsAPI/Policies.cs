@@ -47,7 +47,6 @@
                 .SetQueryParam("policyType", policy)
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -297,7 +296,6 @@
                .AppendPathSegment($"_apis/policy/configurations")
                .SetQueryParam("api-version", Constants.APIVERSION)
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PostJsonAsync(policy);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -314,7 +312,6 @@
                .AppendPathSegment(configId)
                .SetQueryParam("api-version", Constants.APIVERSION)
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PutJsonAsync(configuration);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)

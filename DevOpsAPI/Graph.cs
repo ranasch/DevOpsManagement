@@ -28,7 +28,6 @@
                 .SetQueryParam("groupDescriptors", memberships)
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .PostJsonAsync(group);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -46,7 +45,6 @@
                 .SetQueryParam("scopeDescriptor", projectDescriptor)
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)

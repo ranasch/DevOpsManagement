@@ -112,7 +112,6 @@
                     .AppendPathSegment($"_apis/git/repositories/{repoId}")
                     .SetQueryParam("api-version", Constants.APIVERSION)
                     .WithBasicAuth(string.Empty, pat)
-                    .AllowAnyHttpStatus()
                     .GetAsync();
 
                 if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -131,7 +130,6 @@
                 .AppendPathSegment($"_apis/git/repositories")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -158,7 +156,6 @@
                 .AppendPathSegment($"_apis/git/repositories")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .PostJsonAsync(payload);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -179,7 +176,6 @@
                 .SetQueryParam("filter", "heads")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -231,7 +227,6 @@
                .AppendPathSegment("pushes")
                .SetQueryParam("api-version", "6.1-preview.2")
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PostJsonAsync(payload);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -259,7 +254,6 @@
                .AppendPathSegment("refs")
                .SetQueryParam("api-version", Constants.APIVERSION)
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PostJsonAsync(payload);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -281,7 +275,6 @@
                 .SetQueryParam("recurse", "false")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -323,7 +316,6 @@
                .AppendPathSegment(Constants.SecurityNamespaceGitRepo)
                .SetQueryParam("api-version", Constants.APIVERSION)
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PostJsonAsync(ace);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -345,7 +337,6 @@
                .SetQueryParam("token", token)
                .SetQueryParam("api-version", Constants.APIVERSION)
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .DeleteAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)

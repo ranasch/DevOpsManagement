@@ -5,6 +5,7 @@
     using Serilog;
     using System;
     using System.Linq;
+    using System.Net;
     using System.Text.Json;
     using System.Threading.Tasks;
 
@@ -16,7 +17,7 @@
                 .AppendPathSegment("_apis/projects")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
+                .AllowHttpStatus(HttpStatusCode.NotFound)
                 .GetAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -32,7 +33,7 @@
                 .AppendPathSegment(operationId)
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
+                .AllowHttpStatus(HttpStatusCode.NotFound)
                 .GetAsync();
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -316,7 +317,6 @@
                 .AppendPathSegment("_apis/serviceendpoint/endpoints")
                 .SetQueryParam("api-version", "6.0-preview.4")
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .PostJsonAsync(dummyServiceConnection);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -328,7 +328,6 @@
                     .SetQueryParam("projectIds", projectId)
                     .SetQueryParam("api-version", "6.1-preview.4")
                     .WithBasicAuth(string.Empty, pat)
-                    .AllowAnyHttpStatus()
                     .DeleteAsync();
 
                 return;
@@ -357,7 +356,6 @@
                 .AppendPathSegment("_apis/distributedtask/deploymentgroups")
                 .SetQueryParam("api-version", "6.0-preview.1")
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .PostJsonAsync(dummyDeploymentGroup);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -368,7 +366,6 @@
                     .AppendPathSegment($"_apis/distributedtask/deploymentgroups/{groupId}")
                     .SetQueryParam("api-version", "6.1-preview.1")
                     .WithBasicAuth(string.Empty, pat)
-                    .AllowAnyHttpStatus()
                     .DeleteAsync();
 
                 return;
@@ -394,7 +391,6 @@
                 .WithHeader("Content-Type", "application/json")
                 .SetQueryParam("api-version", "6.0-preview.4")
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .PostStringAsync(dummyReleaseDefinition);
 
             if (queryResponse.ResponseMessage.IsSuccessStatusCode)
@@ -406,7 +402,6 @@
                     .WithHeader("Content-Type", "application/json")
                     .SetQueryParam("api-version", "6.1-preview.4")
                     .WithBasicAuth(string.Empty, pat)
-                    .AllowAnyHttpStatus()
                     .DeleteAsync();
                 return;
             }
