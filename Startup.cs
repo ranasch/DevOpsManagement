@@ -3,18 +3,21 @@
 
 namespace DevOpsManagement
 {
-    using Microsoft.Azure.Storage;
-    using Microsoft.Azure.Storage.Queue;
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Configuration;
-    using System;
     using DevOpsManagement.DevOpsAPI;
-    using System.Collections.Generic;
-    using Microsoft.Extensions.Logging;
+    using Flurl.Http.Configuration;
+    using Flurl.Http;
     using Microsoft.ApplicationInsights.Extensibility.Implementation;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.WindowsAzure.Storage;
+    using Newtonsoft.Json.Converters;
+    using Newtonsoft.Json.Serialization;
+    using Newtonsoft.Json;
     using Serilog;
+    using System;
 
-    public class Startup: FunctionsStartup
+    public class Startup : FunctionsStartup
     {
         private ILoggerFactory _loggerFactory;
         public override void Configure(IFunctionsHostBuilder builder)
@@ -37,11 +40,11 @@ namespace DevOpsManagement
                 ManagementProjectName = config["MANAGEMENT_PROJECT_NAME"],
                 ManagementProjectTeam = config["MANAGEMENT_PROJECT_TEAM_NAME"],
                 APPINSIGHTS_INSTRUMENTATIONKEY = config["APPINSIGHTS_INSTRUMENTATIONKEY"],
-                ProcessTemplateId=config["ProcessTemplateId"]
+                ProcessTemplateId = config["ProcessTemplateId"]
             };
 
             TelemetryDebugWriter.IsTracingDisabled = true;
-            
+
             // provide static logger instance as soon as possible
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(config)
@@ -50,13 +53,45 @@ namespace DevOpsManagement
                 .WriteTo.ApplicationInsights(appSettings.APPINSIGHTS_INSTRUMENTATIONKEY, TelemetryConverter.Traces)
                 .CreateLogger();
 
+            var services = builder.Services;
+            services.AddMvcCore()
+                .AddNewtonsoftJson(o =>
+                {
+                    o.SerializerSettings.Converters.Add(new StringEnumConverter());
+                    o.SerializerSettings.ContractResolver = new DefaultContractResolver
+                    {
+                        NamingStrategy = new CamelCaseNamingStrategy
+                        {
+                            OverrideSpecifiedNames = false
+                        }
+                    };
+                });
+
+            FlurlHttp
+                .Configure(settings =>
+                {
+                    var jsonSettings = new JsonSerializerSettings
+                    {
+                        ContractResolver = new DefaultContractResolver
+                        {
+                            NamingStrategy = new CamelCaseNamingStrategy
+                            {
+                                OverrideSpecifiedNames = false
+                            }
+                        },
+                        NullValueHandling = NullValueHandling.Ignore
+                    };
+                    jsonSettings.Converters.Add(new StringEnumConverter());
+                    settings.JsonSerializer = new NewtonsoftJsonSerializer(jsonSettings);
+                });
+
             Log.Information("*** Starting DevOps Management ***");
 
             // Initialisze ManagementProjectId
-            Log.Information($"Using these settings:\nOrganizationUrl: {appSettings.VSTSOrganizationUrl}\nManagementProject: {appSettings.ManagementProjectName}\nPAT (starting with {appSettings.PAT.Substring(0,4)}***\nTeam: {appSettings.ManagementProjectTeam}");
+            Log.Information($"Using these settings:\nOrganizationUrl: {appSettings.VSTSOrganizationUrl}\nManagementProject: {appSettings.ManagementProjectName}\nPAT (starting with {appSettings.PAT.Substring(0, 4)}***\nTeam: {appSettings.ManagementProjectTeam}");
             var managementProjectTask = Project.GetProjectAsync(appSettings.VSTSOrganizationUrl, appSettings.ManagementProjectName, appSettings.PAT);
             var managementProjectId = managementProjectTask.GetAwaiter().GetResult();
-            appSettings.ManagementProjectId= managementProjectId.RootElement.GetProperty("id").GetString();
+            appSettings.ManagementProjectId = managementProjectId.RootElement.GetProperty("id").GetString();
             Log.Information($"Management project id: {appSettings.ManagementProjectId}");
 
             //var appSettings = config.GetSection("AppSettings").Get<Appsettings>();
@@ -77,7 +112,7 @@ namespace DevOpsManagement
             var azid = azidTask.GetAwaiter().GetResult();
             Log.Information($"Found current AZP_ID = {azid}");
             var azidinstance = Tools.AzIdCreator.Instance;
-            azidinstance.EnvironmentSeed=azid;
+            azidinstance.EnvironmentSeed = azid;
 
             Log.Information("*** DevOps Management running ***");
         }

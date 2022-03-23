@@ -17,13 +17,9 @@
                 .AppendPathSegment("_apis/projects")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowHttpStatus(HttpStatusCode.NotFound)
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
         public static async Task<JsonDocument> GetProjectStatusAsync(Url _organization, string operationId, string pat)
         {
@@ -33,13 +29,9 @@
                 .AppendPathSegment(operationId)
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowHttpStatus(HttpStatusCode.NotFound)
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> GetProjectAsync(Url _organization, string projectName, string pat)
@@ -52,18 +44,10 @@
                 .WithBasicAuth(string.Empty, pat)
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                responseContent = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
-                Log.Information("Query result = {@received}", responseContent);
-                return JsonDocument.Parse(responseContent);
-            }
-            else
-            {
-                Log.Error("Query result Status {0}= {@received}", queryResponse.ResponseMessage.StatusCode.ToString(), responseContent);
-                throw new ApplicationException($"Cannot retrieve project details for project \"{projectName}\" in \"{_organization}\" with pat starting with \"{pat.Substring(0, 4)}\"");
-            }
-        }
+            responseContent = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
+            Log.Information("Query result = {@received}", responseContent);
+            return JsonDocument.Parse(responseContent);
+    }
 
         public static async Task<JsonDocument> GetProjectByNameAsync(Url _organization, string projectName, string pat)
         {
@@ -71,14 +55,9 @@
                 .AppendPathSegment($"_apis/projects/{projectName}")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> GetIdentityForGroupAsync(string organizationName, string projectName, string groupName, string pat)
@@ -91,13 +70,9 @@
                 .SetQueryParam("queryMembership", "None")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> GetIdentityForOrganizationAsync(string organizationName, string groupName, string pat)
@@ -110,15 +85,9 @@
                 .SetQueryParam("queryMembership", "None")
                 .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<string> CreateProjectsAsync(Url _organization,
@@ -148,13 +117,9 @@
                 .AppendPathSegment("_apis/projects")
                 .SetQueryParam("api-version", "6.0")
                 .WithBasicAuth(string.Empty, pat)
-                .AllowAnyHttpStatus()
                 .PostJsonAsync(project);
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
-            else
-                return string.Empty;
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
         }
 
 
@@ -166,13 +131,9 @@
                .AppendPathSegment($"_apis/wit/workitems/{workitemId}")
                .SetQueryParam("api-version", "6.0")
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> UpdateWorkItemByIdAsync(Url organization, int workitemId, object patchOperation, string pat)
@@ -183,16 +144,9 @@
                .SetQueryParam("api-version", "6.0")
                .WithHeader("Content-Type", "application/json-patch+json")
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PatchJsonAsync(patchOperation);
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-            {
-                var result = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
-                throw new ApplicationException($"Could not update Workitem status - Reason {queryResponse.StatusCode} {result}");
-            }
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> AddWorkItemCommentAsync(Url organization, string projectId, int workitemId, string comment, string mention, string pat)
@@ -209,13 +163,9 @@
                .AppendPathSegment($"_apis/wit/workitems/{workitemId}/comments")
                .SetQueryParam("api-version", "6.1-preview.3")
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PostJsonAsync(commentPayload);
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<int> GetMaxAzIdForEnvironment(string organizationName, string projectName, string projectTeam, string pat)
@@ -237,47 +187,32 @@
                .SetQueryParam("$top", "1")
                .SetQueryParam("api-version", "6.0")
                .WithBasicAuth(string.Empty, pat)
-               .AllowAnyHttpStatus()
                .PostJsonAsync(wiql);
 
             var azid = 0;
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
+            try
             {
-                try
-                {
-                    var jsonQueryResult = JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-                    var workItemWithmaxAzId = jsonQueryResult.RootElement.GetProperty("workItems").EnumerateArray().First().GetProperty("id").GetInt32();
-                    var workItem = await GetWorkItemByIdAsync(organizationName, projectName, workItemWithmaxAzId, pat);
-                    azid = workItem.RootElement.GetProperty("fields").GetProperty("Custom.AZP_ID").GetInt32();
-                }
-                catch (InvalidOperationException)
-                { azid = 0; }
+                var jsonQueryResult = JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
+                var workItemWithmaxAzId = jsonQueryResult.RootElement.GetProperty("workItems").EnumerateArray().First().GetProperty("id").GetInt32();
+                var workItem = await GetWorkItemByIdAsync(organizationName, projectName, workItemWithmaxAzId, pat);
+                azid = workItem.RootElement.GetProperty("fields").GetProperty("Custom.AZP_ID").GetInt32();
             }
-            else // no az_id found --> start with 0
-                return 0;
+            catch (InvalidOperationException)
+            {}
 
             return azid;
         }
 
         public static async Task<JsonDocument> GetProjectDescriptorAsync(string organizationName, string projectId, string pat)
         {
-            try
-            {
-                // GET https://vssps.dev.azure.com/{{organization}}/_apis/graph/descriptors/95873e02-95f8-40cf-bce6-e563c7cd5fdf?api-version={{api-version-preview}}
-                var queryResponse = await $"https://vssps.dev.azure.com/{organizationName}"
-                    .AppendPathSegment($"_apis/graph/descriptors/{projectId}")
-                    .SetQueryParam("api-version", Constants.APIVERSION)
-                    .WithBasicAuth(string.Empty, pat)
-                    .AllowAnyHttpStatus()
-                    .GetAsync();
+            // GET https://vssps.dev.azure.com/{{organization}}/_apis/graph/descriptors/95873e02-95f8-40cf-bce6-e563c7cd5fdf?api-version={{api-version-preview}}
+            var queryResponse = await $"https://vssps.dev.azure.com/{organizationName}"
+                .AppendPathSegment($"_apis/graph/descriptors/{projectId}")
+                .SetQueryParam("api-version", Constants.APIVERSION)
+                .WithBasicAuth(string.Empty, pat)
+                .GetAsync();
 
-                if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                    return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-                else
-                    return JsonDocument.Parse("{}");
-            }
-            catch (Exception) { return JsonDocument.Parse("{}"); }
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         /// <summary>

@@ -26,7 +26,7 @@
                 .AppendPathSegment("_apis/graph/groups")
                 .SetQueryParam("scopeDescriptor", projectDescriptor)
                 .SetQueryParam("groupDescriptors", memberships)
-                .SetQueryParam("api-version", Constants.APIVERSION)
+                .SetQueryParam("api-version", "7.1-preview.1") // pin to preview version since not available on 7.0
                 .WithBasicAuth(string.Empty, pat)
                 .PostJsonAsync(group);
 
@@ -43,7 +43,7 @@
             var queryResponse = await $"https://vssps.dev.azure.com/{orgaName}"
                 .AppendPathSegment("_apis/graph/groups")
                 .SetQueryParam("scopeDescriptor", projectDescriptor)
-                .SetQueryParam("api-version", Constants.APIVERSION)
+                .SetQueryParam("api-version", "7.1-preview.1") // pin to preview version since not available on 7.0
                 .WithBasicAuth(string.Empty, pat)
                 .GetAsync();
 

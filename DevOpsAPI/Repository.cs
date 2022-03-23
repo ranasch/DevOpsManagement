@@ -132,11 +132,7 @@
                 .WithBasicAuth(string.Empty, pat)
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> CreateRepositoryAsync(Url organization, string projectId, string repoName, string pat)
@@ -158,11 +154,7 @@
                 .WithBasicAuth(string.Empty, pat)
                 .PostJsonAsync(payload);
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> GetGitRefs(Url organization, string projectId, string repoId, string pat)
@@ -178,11 +170,7 @@
                 .WithBasicAuth(string.Empty, pat)
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> InitialCommitAsync(Url organization, string repoId, string pat)
@@ -229,10 +217,7 @@
                .WithBasicAuth(string.Empty, pat)
                .PostJsonAsync(payload);
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> CreateBranchAsync(Url organization, string projectId, string repoId, string branchName, string parentBranchRefId, string pat)
@@ -256,10 +241,7 @@
                .WithBasicAuth(string.Empty, pat)
                .PostJsonAsync(payload);
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> GetACLforRepoAsync(Url organization, string projectId, string repoId, string groupSecDescriptor, string pat)
@@ -277,11 +259,7 @@
                 .WithBasicAuth(string.Empty, pat)
                 .GetAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> SetACEforRepoAsync(Url organization, string projectId, string repoId, string branchName, string groupSecDescriptor, long allowMask, long denyMask, string pat)
@@ -318,11 +296,7 @@
                .WithBasicAuth(string.Empty, pat)
                .PostJsonAsync(ace);
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         public static async Task<JsonDocument> DeletePermissionAsync(Url organization, string token, string groupSecDescriptor, long permission, string pat)
@@ -339,11 +313,7 @@
                .WithBasicAuth(string.Empty, pat)
                .DeleteAsync();
 
-            if (queryResponse.ResponseMessage.IsSuccessStatusCode)
-                return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
-            else
-                return JsonDocument.Parse("{}");
-
+            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync());
         }
 
         class ACE
