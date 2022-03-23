@@ -5,7 +5,6 @@
     using Serilog;
     using System;
     using System.Linq;
-    using System.Net;
     using System.Text.Json;
     using System.Threading.Tasks;
 
@@ -47,7 +46,7 @@
             responseContent = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
             Log.Information("Query result = {@received}", responseContent);
             return JsonDocument.Parse(responseContent);
-    }
+        }
 
         public static async Task<JsonDocument> GetProjectByNameAsync(Url _organization, string projectName, string pat)
         {
@@ -198,7 +197,7 @@
                 azid = workItem.RootElement.GetProperty("fields").GetProperty("Custom.AZP_ID").GetInt32();
             }
             catch (InvalidOperationException)
-            {}
+            { }
 
             return azid;
         }

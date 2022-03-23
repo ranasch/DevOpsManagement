@@ -1,6 +1,5 @@
-﻿using Newtonsoft.Json;
-
-namespace DevOpsManagement.Model;
+﻿namespace DevOpsManagement.Model;
+using Newtonsoft.Json;
 
 public class ProjectPayload 
 {
@@ -8,7 +7,6 @@ public class ProjectPayload
     public string CreateType { get; set; }
     [JsonRequired]
     public int WorkItemId { get; set; }
-
     [JsonRequired]
     public string ProjectName { get; set; }
     public string ProjectDescription { get; set; }

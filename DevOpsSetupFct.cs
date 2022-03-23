@@ -40,9 +40,17 @@ public class DevOpsSetupFct
 
         string projectId = "pending";
         Log.Debug("*** Get Properties ***");
-
-        var provisioningCmd = JsonConvert.DeserializeObject<ProjectPayload>(setupDevOpsMessage);
-
+        ProjectPayload provisioningCmd;
+        try
+        {
+            provisioningCmd = JsonConvert.DeserializeObject<ProjectPayload>(setupDevOpsMessage);
+            await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, provisioningCmd.WorkItemId, $"Processing started - getting things ready for you...", provisioningCmd.Requestor, _pat);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"Bad Request - cannot process request message {setupDevOpsMessage}");
+            return;
+        }
         switch (provisioningCmd.CreateType)
         {
             case "Project":
@@ -68,16 +76,15 @@ public class DevOpsSetupFct
                         await ReportError($"Duplicate project name - A project with name {provisioningCmd.ProjectName} already exists. Please rename and try again.", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                         return;
                     }
-
                     // validate input
                     if (!await ValidateProjectName(provisioningCmd.WorkItemId, provisioningCmd.CreateType, provisioningCmd.ProjectName, provisioningCmd.Requestor))
                     {
-                        Log.Error($"*** Invalid project name {provisioningCmd.ProjectName} (Workitem {provisioningCmd.WorkItemId}) ***");
+                        await ReportError($"*** Invalid project name {provisioningCmd.ProjectName} (Workitem {provisioningCmd.WorkItemId}) ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                         return;
                     }
                     if (!await ValidateCostCenterManagerName(provisioningCmd.WorkItemId, provisioningCmd.CreateType, provisioningCmd.CostCenterManager, provisioningCmd.Requestor))
                     {
-                        Log.Error($"*** Missing CostCenter Manager for {provisioningCmd.ProjectName} (Workitem {provisioningCmd.WorkItemId})  ***");
+                        await ReportError($"*** Missing CostCenter Manager for {provisioningCmd.ProjectName} (Workitem {provisioningCmd.WorkItemId})  ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                         return;
                     }
 
@@ -107,12 +114,12 @@ public class DevOpsSetupFct
                         {
                             case "cancelled":
                                 pending = false;
-                                Log.Information("*** Project creation cancelled ***");
-                                break;
+                                await ReportError("*** Project creation caceled ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
+                                return;
                             case "failed":
                                 pending = false;
-                                Log.Error("*** Project creation failed ***");
-                                break;
+                                await ReportError("*** Project creation failed ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
+                                return;
                             case "succeeded":
                                 pending = false;
                                 Log.Information("*** Project creation succeeded ***");
@@ -120,7 +127,7 @@ public class DevOpsSetupFct
                                 projectId = project.RootElement.GetProperty("id").GetString();
                                 break;
                             default:
-                                Log.Information("*** Project creation pending ***");
+                                Log.Debug("*** Project creation pending ***");
                                 Thread.Sleep(5000);
                                 break;
                         }
@@ -173,7 +180,7 @@ public class DevOpsSetupFct
                     var infraMaintAdminGroup = await Graph.CreateAzDevOpsGroupAsync(_organizationName, projectDescriptor, string.Format(ZfGroupNames.InfraMaint_Administrator, nextId), joinedGroups, _pat);
 
                     // Finish up
-                    Log.Information($"*** Update Workitem Status {zfProjectName} #{provisioningCmd.WorkItemId} ***");
+                    Log.Information($"*** Success - Update Workitem Status {zfProjectName} #{provisioningCmd.WorkItemId} ***");
                     await UpdateWorkItemStatus(wiType.project, provisioningCmd.WorkItemId, nextId, zfProjectName);
                     var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, provisioningCmd.WorkItemId, $"Project <a href=\"{_organizationUrl}/{zfProjectName}\">{zfProjectName}</a> is provisioned and ready to use.", provisioningCmd.Requestor, _pat);
                     break;
@@ -181,6 +188,7 @@ public class DevOpsSetupFct
                 catch (Exception ex)
                 {
                     Log.Error(ex, "*** Failed to fully provision new project. Payload: {@Payload}", provisioningCmd);
+                    await ReportError("*** Project creation failed - check with helpdesk ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                     return;
                 }
             case "Repository":
@@ -211,6 +219,7 @@ public class DevOpsSetupFct
                 catch (Exception ex)
                 {
                     Log.Error(ex, "*** Failed to fully provision new repository. Payload: {@Payload}", provisioningCmd);
+                    await ReportError("*** Repository creation failed ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                     return;
                 }
         };

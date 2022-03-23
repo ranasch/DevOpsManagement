@@ -63,7 +63,9 @@ namespace DevOpsManagement
                         NamingStrategy = new CamelCaseNamingStrategy
                         {
                             OverrideSpecifiedNames = false
-                        }
+                        },
+                        IgnoreIsSpecifiedMembers = false,
+                        IgnoreShouldSerializeMembers = false
                     };
                 });
 
