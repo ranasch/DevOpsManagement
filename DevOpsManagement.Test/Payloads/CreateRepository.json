@@ -1,0 +1,12 @@
+{
+  "createType": "Repository",
+  "workItemId": 8888,
+  "azp_Id": 10,
+  "projectName": "AZP-010_MockProject",
+  "repositoryName": "MockRepo",
+  "dataOwner1": "",
+  "dataOwner2": "",
+  "requestor": "user@myorga.com",
+  "costCenter": "1234",
+  "costCenterManager": "manager@myorga.com"
+}
