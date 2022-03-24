@@ -42,7 +42,7 @@ stages:
       displayName: Run Unit Tests
       inputs:
         command: 'test'
-        projects: '$(workingDirectory)/*.csproj'
+        projects: '$(workingDirectory)/DevOpsManagement.Test/*.csproj'
         testRunTitle: 'Unit tests'
     - task: ArchiveFiles@2
       displayName: 'Archive files'
