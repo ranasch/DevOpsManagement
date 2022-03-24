@@ -5,6 +5,7 @@ trigger:
   branches:
     include:
     - master
+    - develop
   paths:
     exclude:
     - /Deploy/*
@@ -38,10 +39,11 @@ stages:
           $(workingDirectory)/*.csproj
         arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
     - task: DotNetCoreCLI@2
+      displayName: Run Unit Tests
       inputs:
         command: 'test'
-        projects: '$(workingDirectory)/*.csproj'
-        testRunTitle: 'Run unit tests'
+        projects: '$(workingDirectory)/DevOpsManagement.Test.csproj'
+        testRunTitle: 'Unit tests'
     - task: ArchiveFiles@2
       displayName: 'Archive files'
       inputs:
