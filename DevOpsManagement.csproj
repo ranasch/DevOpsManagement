@@ -5,6 +5,11 @@
     <UserSecretsId>31c66a3a-02d2-401b-a101-653d1d7692b4</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="DevOpsManagement.Test\**" />
+    <EmbeddedResource Remove="DevOpsManagement.Test\**" />
+    <None Remove="DevOpsManagement.Test\**" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="AutoMapper" Version="11.0.1" />
     <PackageReference Include="Flurl" Version="3.0.4" />
     <PackageReference Include="Flurl.Http" Version="3.2.2" />

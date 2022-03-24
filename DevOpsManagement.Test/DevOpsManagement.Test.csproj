@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DevOpsManagement\DevOpsManagement.csproj" />
+    <ProjectReference Include="..\DevOpsManagement.csproj" />
   </ItemGroup>
 
 </Project>
