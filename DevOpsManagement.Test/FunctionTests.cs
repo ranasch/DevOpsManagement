@@ -141,11 +141,56 @@ public class FunctionTests
         using (TestCorrelator.CreateContext())
         {
             /// Act
-            await sut.SetupRepository(provMessageSpaces);
+            await sut.SetupRepository(provMessageSpecialChar);
 
             /// Assert
             Assert.True(TestCorrelator.GetLogEventsFromCurrentContext().Count() > 0);
             Assert.StartsWith("*** Invalid characters in project name - ch", TestCorrelator.GetLogEventsFromCurrentContext().ToList().FirstOrDefault(_ => _.Level == Serilog.Events.LogEventLevel.Error).RenderMessage());
+        }
+
+    }
+
+    [Fact]
+    public async void Create_Project_With_Missing_Cost_Center_Manager_Logs_Error()
+    {
+        /// Arrange
+        var apiMock = new HttpTest();
+        var azdoProjects = EmbeddedResource.GetResource(typeof(FunctionTests), "AzDoResponses.Projects.json");
+        var projectPayload = JsonConvert.DeserializeObject<ProjectPayload>(_projectPayloadMessage);
+        apiMock
+            .ForCallsTo("https://dev.azure.com/mockorga/_apis/projects")
+            .WithVerb("GET")
+            .RespondWith(azdoProjects, (int)HttpStatusCode.Accepted);
+
+        apiMock
+            .ForCallsTo("https://dev.azure.com/mockorga/*")
+            .WithVerb("POST")
+            .RespondWith("{}", (int)HttpStatusCode.OK);
+
+        apiMock
+            .ForCallsTo("https://dev.azure.com/mockorga/_apis/wit/workitems/*")
+            .WithVerb("PATCH")
+            .RespondWith("{}", (int)HttpStatusCode.OK);
+
+        apiMock
+            .ForCallsTo("https://dev.azure.com/mockorga/MockProjectCreationProject/_apis/wit/workitems/*")
+            .WithVerb("POST")
+            .RespondWith("{}", (int)HttpStatusCode.OK);
+
+        projectPayload.ProjectName = "ValidProjectName";
+        projectPayload.CostCenterManager = "";
+        var provMessageNoCCM = JsonConvert.SerializeObject(projectPayload);
+
+        var sut = new DevOpsSetupFct(_appSettings);
+
+        using (TestCorrelator.CreateContext())
+        {
+            /// Act
+            await sut.SetupRepository(provMessageNoCCM);
+
+            /// Assert
+            Assert.True(TestCorrelator.GetLogEventsFromCurrentContext().Count() > 0);
+            Assert.StartsWith("*** Missing CostCenter Manager - a", TestCorrelator.GetLogEventsFromCurrentContext().ToList().FirstOrDefault(_ => _.Level == Serilog.Events.LogEventLevel.Error).RenderMessage());
         }
 
     }
