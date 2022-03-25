@@ -101,7 +101,12 @@ stages:
                   },
                   {
                     "name": "VSTSApiVersion",
-                    "value": "6.1-preview.1",
+                    "value": "7.0",
+                    "slotSetting": false
+                  },
+                                    {
+                    "name": "FUNCTIONS_EXTENSION_VERSION",
+                    "value": "~4",
                     "slotSetting": false
                   },
                   {
