@@ -37,7 +37,7 @@ stages:
         command: 'build'
         projects: |
           $(workingDirectory)/*.csproj
-        arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
+        arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Debug
     - task: DotNetCoreCLI@2
       displayName: Run Unit Tests
       inputs:
