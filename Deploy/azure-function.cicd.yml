@@ -68,8 +68,12 @@ stages:
         archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).release.zip
         replaceExistingArchive: true
 
-    - publish: $(Build.ArtifactStagingDirectory)/*.zip
-      artifact: drop
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifacts
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
 
 - stage: Dev
   lockBehavior: sequential
