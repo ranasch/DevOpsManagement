@@ -14,7 +14,7 @@ trigger:
 variables:
   - group: azdo-dev
   - name: azureSubscription 
-    value: 'MSDN'
+    value: 'DevStageServiceConnection'
   - name: vmImageName
     value: 'ubuntu-latest'
   - name: workingDirectory
@@ -37,7 +37,14 @@ stages:
         command: 'build'
         projects: |
           $(workingDirectory)/*.csproj
-        arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Debug
+        arguments: --output $(System.DefaultWorkingDirectory)/publish_output_debug --configuration Debug        
+    - task: DotNetCoreCLI@2
+      displayName: Build
+      inputs:
+        command: 'build'
+        projects: |
+          $(workingDirectory)/*.csproj
+        arguments: --output $(System.DefaultWorkingDirectory)/publish_output_release --configuration Release
     - task: DotNetCoreCLI@2
       displayName: Run Unit Tests
       inputs:
@@ -47,13 +54,21 @@ stages:
     - task: ArchiveFiles@2
       displayName: 'Archive files'
       inputs:
-        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output'
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output_debug'
         includeRootFolder: false
         archiveType: zip
-        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).debug.zip
+        replaceExistingArchive: true
+    - task: ArchiveFiles@2
+      displayName: 'Archive files'
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output_release'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).release.zip
         replaceExistingArchive: true
 
-    - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+    - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).*.zip
       artifact: drop
 
 - stage: Dev
@@ -81,7 +96,7 @@ stages:
               azureSubscription: '$(azureSubscription)'
               appType: functionApp
               appName: $(functionAppName)
-              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).debug.zip'
           - task: AzureAppServiceSettings@1
             inputs:
               azureSubscription: '$(azureSubscription)'
@@ -104,7 +119,7 @@ stages:
                     "value": "7.0",
                     "slotSetting": false
                   },
-                                    {
+                  {
                     "name": "FUNCTIONS_EXTENSION_VERSION",
                     "value": "~4",
                     "slotSetting": false
@@ -156,7 +171,7 @@ stages:
               azureSubscription: '$(azureSubscription)'
               appType: functionApp
               appName: $(functionAppName)
-              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).release.zip'
           - task: AzureAppServiceSettings@1
             inputs:
               azureSubscription: '$(azureSubscription)'
@@ -176,7 +191,12 @@ stages:
                   },
                   {
                     "name": "VSTSApiVersion",
-                    "value": "6.1-preview.1",
+                    "value": "7.0",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "FUNCTIONS_EXTENSION_VERSION",
+                    "value": "~4",
                     "slotSetting": false
                   },
                   {

@@ -265,3 +265,4 @@ __pycache__/
 /Properties/ServiceDependencies/local/compute.function.windows1.arm.json
 /Properties/PublishProfiles/*
 /Properties/serviceDependencies*.json
+/Properties/launchSettings.json

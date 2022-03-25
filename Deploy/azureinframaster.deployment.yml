@@ -12,7 +12,7 @@ trigger:
 variables:
   - group: azdo-dev
   - name: devServiceConnection
-    value: MSDN
+    value: DevStageServiceConnection
   - name: vmImageName
     value: 'ubuntu-latest'
 
