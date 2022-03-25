@@ -197,7 +197,9 @@
                 azid = workItem.RootElement.GetProperty("fields").GetProperty("Custom.AZP_ID").GetInt32();
             }
             catch (InvalidOperationException)
-            { }
+            {
+                Log.Warning("*** Failed to get AZP_ID from workitem --> starting with 0");
+            }
 
             return azid;
         }

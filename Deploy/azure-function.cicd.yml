@@ -62,7 +62,7 @@ stages:
     - group: azdo-dev
   displayName: Deploy stage
   dependsOn: Build
-  condition: succeeded()
+  condition: and(succeeded('Build'), ne(variables['Build.Reason'], 'PullRequest'))
 
   jobs:
   - deployment: Deploy
@@ -132,7 +132,7 @@ stages:
     - group: azdo-test
   displayName: Deploy test stage
   dependsOn: Dev
-  condition: succeeded()
+  condition: and(succeeded('Dev'), eq(variables['Build.SourceBranchName'], 'master'), ne(variables['Build.Reason'], 'PullRequest'))
 
   jobs:
   - deployment: Deploy
