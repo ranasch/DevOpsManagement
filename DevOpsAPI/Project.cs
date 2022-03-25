@@ -1,10 +1,13 @@
 ﻿namespace DevOpsManagement.DevOpsAPI
 {
+    using DevOpsManagement.Model;
     using Flurl;
     using Flurl.Http;
+    using Newtonsoft.Json;
     using Serilog;
     using System;
     using System.Linq;
+    using System.Net;
     using System.Text.Json;
     using System.Threading.Tasks;
 
@@ -95,6 +98,7 @@
             string processTemplateId,
             string pat)
         {
+            string operationId = string.Empty;
             var project = new
             {
                 name = projectName,
@@ -114,11 +118,32 @@
 
             var queryResponse = await $"{_organization}"
                 .AppendPathSegment("_apis/projects")
-                .SetQueryParam("api-version", "6.0")
+                .SetQueryParam("api-version", Constants.APIVERSION)
                 .WithBasicAuth(string.Empty, pat)
+                .AllowHttpStatus(HttpStatusCode.BadRequest)
                 .PostJsonAsync(project);
 
-            return JsonDocument.Parse(await queryResponse.ResponseMessage.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetString();
+            if(!queryResponse.ResponseMessage.IsSuccessStatusCode)
+            {
+                Log.Error("*** CreateProjectsAsync failed with {@Response}\nCall details: {@Project}\nRequest:{@Resuest}", queryResponse, project, queryResponse.ResponseMessage.RequestMessage);
+                throw new ApplicationException("*** Project creation failed ***");
+            }
+
+            string response = string.Empty;
+            try
+            {
+                response = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
+                var responseObject = JsonConvert.DeserializeObject<CreateProjectResponse>(response);
+
+                operationId= responseObject.Id;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"*** Cannot parse CreateProject response: {response} ***");
+                throw;
+            }
+
+            return operationId;
         }
 
 
