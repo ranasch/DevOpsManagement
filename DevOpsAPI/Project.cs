@@ -105,6 +105,7 @@
             {
                 name = projectName,
                 description = projectDescription,
+                visibility= "private",
                 capabilities = new
                 {
                     versioncontrol = new
