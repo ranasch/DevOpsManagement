@@ -18,6 +18,7 @@ variables:
 
 stages:
   - stage: Validation
+    condition: ne(variables['Build.Reason'], 'PullRequest')
     dependsOn: []
     jobs:
       - job: "prepare"
@@ -102,7 +103,7 @@ stages:
     dependsOn: Dev
     variables:
     - group: azdo-test
-    condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
+    condition: and(succeeded('Dev'), eq(variables['Build.SourceBranchName'], 'master'))
     displayName: Deploy Shared azdo Services to test
     jobs:
       - template: /Deploy/deploystage.infra.yml
