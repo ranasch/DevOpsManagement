@@ -32,14 +32,14 @@ stages:
 
     steps:
     - task: DotNetCoreCLI@2
-      displayName: Build
+      displayName: Build Debug
       inputs:
         command: 'build'
         projects: |
           $(workingDirectory)/*.csproj
         arguments: --output $(System.DefaultWorkingDirectory)/publish_output_debug --configuration Debug        
     - task: DotNetCoreCLI@2
-      displayName: Build
+      displayName: Build Release
       inputs:
         command: 'build'
         projects: |
@@ -52,7 +52,7 @@ stages:
         projects: '$(workingDirectory)/DevOpsManagement.Test/*.csproj'
         testRunTitle: 'Unit tests'
     - task: ArchiveFiles@2
-      displayName: 'Archive files'
+      displayName: 'Archive Debug files'
       inputs:
         rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output_debug'
         includeRootFolder: false
@@ -60,7 +60,7 @@ stages:
         archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).debug.zip
         replaceExistingArchive: true
     - task: ArchiveFiles@2
-      displayName: 'Archive files'
+      displayName: 'Archive Release files'
       inputs:
         rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output_release'
         includeRootFolder: false
@@ -68,8 +68,12 @@ stages:
         archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).release.zip
         replaceExistingArchive: true
 
-    - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).*.zip
-      artifact: drop
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifacts
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
 
 - stage: Dev
   lockBehavior: sequential
@@ -91,7 +95,7 @@ stages:
         deploy:
           steps:
           - task: AzureFunctionApp@1
-            displayName: 'Azure functions app deploy'
+            displayName: 'Azure functions debug app deploy'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: functionApp
@@ -166,7 +170,7 @@ stages:
         deploy:
           steps:
           - task: AzureFunctionApp@1
-            displayName: 'Azure functions app deploy'
+            displayName: 'Azure functions release app deploy'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: functionApp
