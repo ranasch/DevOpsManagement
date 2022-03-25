@@ -95,7 +95,7 @@ stages:
         deploy:
           steps:
           - task: AzureFunctionApp@1
-            displayName: 'Azure functions app deploy'
+            displayName: 'Azure functions debug app deploy'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: functionApp
@@ -170,7 +170,7 @@ stages:
         deploy:
           steps:
           - task: AzureFunctionApp@1
-            displayName: 'Azure functions app deploy'
+            displayName: 'Azure functions release app deploy'
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: functionApp
