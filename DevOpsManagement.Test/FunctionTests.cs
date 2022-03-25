@@ -9,13 +9,13 @@ using Serilog.Sinks.TestCorrelator;
 using System;
 using System.Linq;
 using System.Net;
-using System.Text.Json.Nodes;
 using Xunit;
 
 public class FunctionTests
 {
     readonly Appsettings _appSettings;
     readonly string _projectPayloadMessage;
+    readonly AsyncCollector<object> _outputQueue;
 
     public FunctionTests()
     {
@@ -33,6 +33,8 @@ public class FunctionTests
         Log.Logger = new LoggerConfiguration()
                     .WriteTo.Console()
                     .WriteTo.Sink(new TestCorrelatorSink()).Enrich.FromLogContext().CreateLogger();
+
+        _outputQueue = new AsyncCollector<object>();
     }
 
     [Fact]
@@ -46,7 +48,7 @@ public class FunctionTests
         using (TestCorrelator.CreateContext())
         {
             /// Assert
-            await sut.SetupRepository(payload);
+            await sut.SetupRepository(payload, _outputQueue);
 
             Assert.True(TestCorrelator.GetLogEventsFromCurrentContext().Count() > 0);
             Assert.StartsWith("Bad Request - cannot process request message", TestCorrelator.GetLogEventsFromCurrentContext().ToList().FirstOrDefault(_ => _.Level == Serilog.Events.LogEventLevel.Error).RenderMessage());
@@ -85,7 +87,7 @@ public class FunctionTests
         using (TestCorrelator.CreateContext())
         {
             /// Assert
-            await sut.SetupRepository(_projectPayloadMessage);
+            await sut.SetupRepository(_projectPayloadMessage, _outputQueue);
 
             Assert.True(TestCorrelator.GetLogEventsFromCurrentContext().Count() > 0);
             Assert.StartsWith("*** Duplicate project name - A project with n", TestCorrelator.GetLogEventsFromCurrentContext().ToList().FirstOrDefault(_ => _.Level == Serilog.Events.LogEventLevel.Error).RenderMessage());
@@ -128,7 +130,7 @@ public class FunctionTests
         using (TestCorrelator.CreateContext())
         {
             /// Act
-            await sut.SetupRepository(provMessageSpaces);
+            await sut.SetupRepository(provMessageSpaces, _outputQueue);
 
             /// Assert
             Assert.True(TestCorrelator.GetLogEventsFromCurrentContext().Count() > 0);
@@ -141,7 +143,7 @@ public class FunctionTests
         using (TestCorrelator.CreateContext())
         {
             /// Act
-            await sut.SetupRepository(provMessageSpecialChar);
+            await sut.SetupRepository(provMessageSpecialChar, _outputQueue);
 
             /// Assert
             Assert.True(TestCorrelator.GetLogEventsFromCurrentContext().Count() > 0);
@@ -186,7 +188,7 @@ public class FunctionTests
         using (TestCorrelator.CreateContext())
         {
             /// Act
-            await sut.SetupRepository(provMessageNoCCM);
+            await sut.SetupRepository(provMessageNoCCM, _outputQueue);
 
             /// Assert
             Assert.True(TestCorrelator.GetLogEventsFromCurrentContext().Count() > 0);

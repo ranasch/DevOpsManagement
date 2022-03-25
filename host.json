@@ -7,8 +7,5 @@
       "Function": "Warning",
       "Host.Aggregator": "Warning"
     }
-  },
-  "retry": {
-    "maxRetryCount": 0
   }
 }
