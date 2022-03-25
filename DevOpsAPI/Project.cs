@@ -99,6 +99,8 @@
             string pat)
         {
             string operationId = string.Empty;
+            string response = string.Empty;
+
             var project = new
             {
                 name = projectName,
@@ -125,11 +127,13 @@
 
             if(!queryResponse.ResponseMessage.IsSuccessStatusCode)
             {
-                Log.Error("*** CreateProjectsAsync failed with {@Response}\nCall details: {@Project}\nRequest:{@Resuest}", queryResponse, project, queryResponse.ResponseMessage.RequestMessage);
+                Log.Error("*** CreateProjectsAsync failed with {@Response} ***", queryResponse);
+                Log.Error("*** Call details: {@Project} ***", project);
+                response = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
+                Log.Error("*** Response Body: {0} ***", response);
                 throw new ApplicationException("*** Project creation failed ***");
             }
 
-            string response = string.Empty;
             try
             {
                 response = await queryResponse.ResponseMessage.Content.ReadAsStringAsync();
