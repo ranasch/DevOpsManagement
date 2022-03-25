@@ -12,7 +12,7 @@ trigger:
 variables:
   - group: azdo-dev
   - name: devServiceConnection
-    value: DevStageServiceConnection
+    value: MSDN
   - name: vmImageName
     value: 'ubuntu-latest'
 
@@ -84,7 +84,7 @@ stages:
     dependsOn: Validation
     variables:
     - group: azdo-dev
-    condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
+    condition: succeeded('Validation')
     displayName: Deploy Shared azdo Services to dev
     jobs:
       - template: /Deploy/deploystage.infra.yml

@@ -20,21 +20,29 @@ public class DevOpsSetupFct
     private readonly string _organizationName;
     private readonly Uri _organizationUrl;
     private readonly string _pat;
-    private readonly string _apiVersion;
     private readonly string _managementProjectId;
 
     public DevOpsSetupFct(Appsettings settings)
     {
-        _config = settings;
-        _organizationName = settings.VSTSOrganization;
-        _pat = settings.PAT;
-        _apiVersion = settings.VSTSApiVersion;
-        _organizationUrl = new Uri($"https://dev.azure.com/{_organizationName}");
-        _managementProjectId = settings.ManagementProjectId;
+        try
+        {
+            _config = settings;
+            _organizationName = settings.VSTSOrganization;
+            _pat = settings.PAT;
+            _organizationUrl = new Uri($"https://dev.azure.com/{_organizationName}");
+            _managementProjectId = settings.ManagementProjectId;
+            Log.Information($"*** DevOpsSetupFct: Orga: {_organizationName}, Url: {_organizationUrl}, PAT (starting with {_pat.Substring(0, 4)}, Management Project Id: {_managementProjectId} ***");
+        }
+        catch(Exception ex)
+        {
+            Log.Error(ex, "*** Fatal: DevOpsSetupFct Constructor failed to initialize ***");
+            throw;
+        }
     }
 
     [FunctionName(Constants.SETUP_REPO)]
-    public async Task SetupRepository([QueueTrigger(Constants.StorageQueueName)] string setupDevOpsMessage)
+    public async Task SetupRepository([QueueTrigger(Constants.StorageQueueName)] string setupDevOpsMessage,
+        [Queue($"{Constants.StorageQueueName}-poison")] IAsyncCollector<string> poison)
     {
         Log.Information($"*** Function {Constants.SETUP_REPO} triggered with message {setupDevOpsMessage} ***");
 
@@ -49,6 +57,7 @@ public class DevOpsSetupFct
         catch (Exception ex)
         {
             Log.Error(ex, $"Bad Request - cannot process request message {setupDevOpsMessage}");
+            await poison.AddAsync(setupDevOpsMessage);
             return;
         }
         switch (provisioningCmd.CreateType)
@@ -74,17 +83,20 @@ public class DevOpsSetupFct
                     if (existingProjects.Contains(provisioningCmd.ProjectName))
                     {
                         await ReportError($"Duplicate project name - A project with name {provisioningCmd.ProjectName} already exists. Please rename and try again.", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
+                        await poison.AddAsync(setupDevOpsMessage);
                         return;
                     }
                     // validate input
                     if (!await ValidateProjectName(provisioningCmd.WorkItemId, provisioningCmd.CreateType, provisioningCmd.ProjectName, provisioningCmd.Requestor))
                     {
                         await ReportError($"*** Invalid project name {provisioningCmd.ProjectName} (Workitem {provisioningCmd.WorkItemId}) ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
+                        await poison.AddAsync(setupDevOpsMessage);
                         return;
                     }
                     if (!await ValidateCostCenterManagerName(provisioningCmd.WorkItemId, provisioningCmd.CreateType, provisioningCmd.CostCenterManager, provisioningCmd.Requestor))
                     {
                         await ReportError($"*** Missing CostCenter Manager for {provisioningCmd.ProjectName} (Workitem {provisioningCmd.WorkItemId})  ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
+                        await poison.AddAsync(setupDevOpsMessage);
                         return;
                     }
 
@@ -188,6 +200,7 @@ public class DevOpsSetupFct
                 catch (Exception ex)
                 {
                     Log.Error(ex, "*** Failed to fully provision new project. Payload: {@Payload}", provisioningCmd);
+                    await poison.AddAsync(setupDevOpsMessage);
                     await ReportError("*** Project creation failed - check with helpdesk ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                     return;
                 }
@@ -204,6 +217,7 @@ public class DevOpsSetupFct
                     }
                     catch
                     {
+                        await poison.AddAsync(setupDevOpsMessage);
                         await ReportError($"Project {provisioningCmd.ProjectName} not found in {_organizationName} - cannot provision repository", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                         break;
                     }
@@ -218,6 +232,7 @@ public class DevOpsSetupFct
                 }
                 catch (Exception ex)
                 {
+                    await poison.AddAsync(setupDevOpsMessage);
                     Log.Error(ex, "*** Failed to fully provision new repository. Payload: {@Payload}", provisioningCmd);
                     await ReportError("*** Repository creation failed ***", _managementProjectId, provisioningCmd.Requestor, provisioningCmd.CreateType, provisioningCmd.WorkItemId);
                     return;

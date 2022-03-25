@@ -7,6 +7,10 @@
     "appInsights1": {
       "type": "appInsights",
       "connectionId": "APPINSIGHTS_CONNECTIONSTRING"
+    },
+    "compute.function.windows1": {
+      "group": "connections",
+      "type": "compute.function.windows"
     }
   }
 }
