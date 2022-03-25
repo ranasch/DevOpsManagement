@@ -1,0 +1,11 @@
+{
+  "createType": "Project",
+  "workItemId": 9999,
+  "projectName": "MockProject",
+  "projectDescription": "<div>This is some dummy description</div>",
+  "dataOwner1": "dataowner1@myorga.com",
+  "dataOwner2": "dataowner2@myorga.com",
+  "requestor": "projectowner@myorga.com",
+  "costCenter": "1234",
+  "costCenterManager": "myboss@myorga.com"
+}

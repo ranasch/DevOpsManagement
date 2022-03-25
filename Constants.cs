@@ -6,7 +6,7 @@ namespace DevOpsManagement
     internal class Constants
     {
         public const string StorageQueueName = "azprojectsetup";
-        public const string APIVERSION = "6.1-preview.1";
+        public const string APIVERSION = "7.0";
         public const string MAINBRANCHNAME = "main";
         public const string SecurityNamespaceGitRepo = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87";
         public const string SETUP_REPO = "SetupRepositoryFct";

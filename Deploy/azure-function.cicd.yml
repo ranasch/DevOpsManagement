@@ -5,6 +5,7 @@ trigger:
   branches:
     include:
     - master
+    - develop
   paths:
     exclude:
     - /Deploy/*
@@ -37,7 +38,12 @@ stages:
         projects: |
           $(workingDirectory)/*.csproj
         arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
-
+    - task: DotNetCoreCLI@2
+      displayName: Run Unit Tests
+      inputs:
+        command: 'test'
+        projects: '$(workingDirectory)/DevOpsManagement.Test/*.csproj'
+        testRunTitle: 'Unit tests'
     - task: ArchiveFiles@2
       displayName: 'Archive files'
       inputs:
@@ -56,7 +62,7 @@ stages:
     - group: azdo-dev
   displayName: Deploy stage
   dependsOn: Build
-  condition: succeeded()
+  condition: and(succeeded('Build'), ne(variables['Build.Reason'], 'PullRequest'))
 
   jobs:
   - deployment: Deploy
@@ -126,7 +132,7 @@ stages:
     - group: azdo-test
   displayName: Deploy test stage
   dependsOn: Dev
-  condition: succeeded()
+  condition: and(succeeded('Dev'), eq(variables['Build.SourceBranchName'], 'master'), ne(variables['Build.Reason'], 'PullRequest'))
 
   jobs:
   - deployment: Deploy
