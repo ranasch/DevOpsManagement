@@ -19,7 +19,6 @@ namespace DevOpsManagement
 
     public class Startup : FunctionsStartup
     {
-        private ILoggerFactory _loggerFactory;
         public override void Configure(IFunctionsHostBuilder builder)
         {
             IConfigurationRoot config;
