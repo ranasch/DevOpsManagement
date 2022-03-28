@@ -147,6 +147,11 @@ stages:
                     "name": "Environments",
                     "value": "dev,test,prod",
                     "slotSetting": false
+                  },
+                  {
+                    "name": "PROCESS_TEMPLATE_ID",
+                    "value": "$(PROCESS_TEMPLATE_ID)",
+                    "slotSetting": false
                   }
                 ]
 

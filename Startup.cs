@@ -41,7 +41,7 @@ namespace DevOpsManagement
                     ManagementProjectName = config["MANAGEMENT_PROJECT_NAME"],
                     ManagementProjectTeam = config["MANAGEMENT_PROJECT_TEAM_NAME"],
                     APPINSIGHTS_INSTRUMENTATIONKEY = config["APPINSIGHTS_INSTRUMENTATIONKEY"],
-                    ProcessTemplateId = config["ProcessTemplateId"]
+                    ProcessTemplateId = config["PROCESS_TEMPLATE_ID"]
                 };
 
                 TelemetryDebugWriter.IsTracingDisabled = true;
@@ -99,7 +99,7 @@ namespace DevOpsManagement
             // Initialisze ManagementProjectId
             try
             {
-                Log.Information($"Using these settings:\nOrganizationUrl: {appSettings.VSTSOrganizationUrl}\nManagementProject: {appSettings.ManagementProjectName}\nPAT (starting with {appSettings.PAT.Substring(0, 4)}***\nTeam: {appSettings.ManagementProjectTeam}");
+                Log.Information($"*** Using these settings:\nOrganizationUrl: {appSettings.VSTSOrganizationUrl}\nManagementProject: {appSettings.ManagementProjectName}\nPAT (starting with {appSettings.PAT.Substring(0, 4)}\nTeam: {appSettings.ManagementProjectTeam}\nProcess template Id {appSettings.ProcessTemplateId} ***");
                 var managementProjectTask = Project.GetProjectAsync(appSettings.VSTSOrganizationUrl, appSettings.ManagementProjectName, appSettings.PAT);
                 var managementProjectId = managementProjectTask.GetAwaiter().GetResult();
                 appSettings.ManagementProjectId = managementProjectId.RootElement.GetProperty("id").GetString();
