@@ -2,6 +2,7 @@
 {
     using Flurl;
     using Flurl.Http;
+    using Serilog;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -20,6 +21,7 @@
             string mainBranchRefId;
             string projectCollectionAdminDescriptor;
 
+            Log.Information($"*** Get identities for {repoName} in {projectName} ***");
             // Get Identity for Contributors
             var contributor = await Project.GetIdentityForGroupAsync(organizationName, projectName, "Contributors", pat);
             contributorDescriptor = contributor.RootElement.GetProperty("value").EnumerateArray().First().GetProperty("descriptor").GetString();
@@ -40,36 +42,48 @@
             JsonDocument currentRepository = await Repository.GetRepositoryByNameAsync(organizationUrl, projectName, repoName, pat);
             try
             {
+                Log.Information($"*** Check if repository {repoName} exists in {projectName} ***");
                 repoId = currentRepository.RootElement.GetProperty("id").GetString();
             }
             catch (KeyNotFoundException)
             {
+                Log.Information($"*** Create new {repoName} in {projectName} ***");
                 currentRepository = await Repository.CreateRepositoryAsync(organizationUrl, projectId, repoName, pat);
                 repoId = currentRepository.RootElement.GetProperty("id").GetString();
             }
             // do initial commit
+            Log.Information($"*** Do initial commit {repoName} in {projectName} ***");
             var commit = await Repository.InitialCommitAsync(organizationUrl, repoId, pat);
 
             // Create top branch
+            Log.Information($"*** Create branch {Constants.MAINBRANCHNAME} in {repoName} in {projectName} ***");
             var refIds = await Repository.GetGitRefs(organizationUrl, projectId, repoId, pat);
             var mainBranch = refIds.RootElement.GetProperty("value").EnumerateArray().First(r => r.GetProperty("name").GetString() == $"refs/heads/{Constants.MAINBRANCHNAME}");
             mainBranchRefId = mainBranch.GetProperty("objectId").GetString();
 
+            Log.Information($"*** Create branch integ in {repoName} in {projectName} ***");
             var integInitBranch = await Repository.CreateBranchAsync(organizationUrl, projectId, repoId, "integ/init", mainBranchRefId, pat);
+            Log.Information($"*** Create branch maint in {repoName} in {projectName} ***");
             var maintInitBranch = await Repository.CreateBranchAsync(organizationUrl, projectId, repoId, "maint/init", mainBranchRefId, pat);
+            Log.Information($"*** Create branch task in {repoName} in {projectName} ***");
             var taskInitBranch = await Repository.CreateBranchAsync(organizationUrl, projectId, repoId, "task/init", mainBranchRefId, pat);
 
             var acls = await Repository.GetACLforRepoAsync(organizationUrl, projectId, repoId, contributorDescriptor, pat);
             // Deny CreateBranch on Repo for Contributors
+            Log.Information($"*** Set Deny Create branch {repoName} in {projectName} for contributors ***");
             var resultACERepo = await Repository.SetACEforRepoAsync(organizationUrl, projectId, repoId, null, contributorDescriptor, 0, GitPermissions.CREATEBRANCH, pat);
 
             // grant create branch on integ/*
+            Log.Information($"*** Grant create branch on integ in {repoName} in {projectName} ***");
             var resultInteg = await Repository.SetACEforRepoAsync(organizationUrl, projectId, repoId, "integ", contributorDescriptor, GitPermissions.CREATEBRANCH, 0, pat);
             // grant create branch on maint/*
+            Log.Information($"*** Grant create branch on maint in {repoName} in {projectName} ***");
             var resultMaint = await Repository.SetACEforRepoAsync(organizationUrl, projectId, repoId, "maint", contributorDescriptor, GitPermissions.CREATEBRANCH, 0, pat);
-            // grant create branch on maint/*
+            // grant create branch on task /*
+            Log.Information($"*** Grant create branch on task in {repoName} in {projectName} ***");
             var resultTask = await Repository.SetACEforRepoAsync(organizationUrl, projectId, repoId, "task", contributorDescriptor, GitPermissions.CREATEBRANCH, 0, pat);
 
+            Log.Information($"*** Update policies for {repoName} in {projectName} ***");
             var minReviewer = await Policies.CreateOrUpdateBranchPolicy(organizationUrl, projectName, repoId, "integ", PolicyTypes.MINIMUM_NUMBER_OF_REVIEWERS, pat);
             var linkedWI = await Policies.CreateOrUpdateBranchPolicy(organizationUrl, projectName, repoId, "integ", PolicyTypes.WORK_ITEM_LINKING, pat);
             var gitCaseEnforcementPolicy = await Policies.CreateOrUpdateBranchPolicy(organizationUrl, projectName, repoId, "", PolicyTypes.GIT_REPO_SETTINGS, pat);
@@ -80,12 +94,14 @@
             var deletePermission = await Repository.DeletePermissionAsync(organizationUrl, $"repoV2/{projectId}", readerDescriptor, GitPermissions.PULLREQUESTCONTRIBUTE, pat);
 
             // grant Bypass Policy on PR for Admins
+            Log.Information($"*** Grant bypass policies for admins on PR in {repoName} in {projectName} ***");
             var resultPRBypass = await Repository.SetACEforRepoAsync(organizationUrl, $"repoV2/{projectId}/", adminDescriptor, GitPermissions.PULLREQUESTBYPASSPOLICY, 0, pat);
             // grant bypass policy when pushing for admins
             var resultPushBypass = await Repository.SetACEforRepoAsync(organizationUrl, $"repoV2/{projectId}/", adminDescriptor, GitPermissions.POLICYEXEMPT, 0, pat);
             // grant force push policy when pushing for admins
             var resultforcePush = await Repository.SetACEforRepoAsync(organizationUrl, $"repoV2/{projectId}/", projectCollectionAdminDescriptor, GitPermissions.FORCEPUSH, 0, pat);
 
+            Log.Information($"*** Grant force push for admins and contributors in {repoName} in {projectName} ***");
             // grant force push policy when pushing for contributors
             var resultforcePushContrib = await Repository.SetACEforRepoAsync(organizationUrl, projectId, repoId, "task", contributorDescriptor, GitPermissions.FORCEPUSH, 0, pat);
             // grant force push policy when pushing for project admins
