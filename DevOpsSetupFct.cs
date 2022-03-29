@@ -224,9 +224,7 @@ public class DevOpsSetupFct
 
                     await Repository.CreateCompliantRepositoryAsync(_organizationName, _organizationUrl, provisioningCmd.ProjectName, repoCmd.RepositoryName, projectId, _pat);
                     Log.Information($"*** Repository {repoCmd.RepositoryName} created in {provisioningCmd.ProjectName} ***");
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                    UpdateWorkItemStatus(wiType.repo, provisioningCmd.WorkItemId);
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                    await UpdateWorkItemStatus(wiType.repo, provisioningCmd.WorkItemId);
                     var result = await Project.AddWorkItemCommentAsync(_organizationUrl, _managementProjectId, provisioningCmd.WorkItemId, $"Repository <a href=\"{_organizationUrl}/{provisioningCmd.ProjectName}/_git/{repoCmd.RepositoryName}\">{repoCmd.RepositoryName}</a> is provisioned and ready to use.", provisioningCmd.Requestor, _pat);
                     break;
                 }
