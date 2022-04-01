@@ -14,7 +14,7 @@ trigger:
 variables:
   - group: azdo-dev
   - name: azureSubscription 
-    value: 'DevStageServiceConnection'
+    value: 'DevOpsAutomationSC'
   - name: vmImageName
     value: 'ubuntu-latest'
   - name: workingDirectory
