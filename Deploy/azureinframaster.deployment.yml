@@ -118,10 +118,10 @@ stages:
           resourcePrefix: $(resourcePrefix)
           library: azdo-test
   - stage: Poc
-    dependsOn: Test
+    dependsOn: Validation
     variables:
     - group: azdo-poc
-    condition: and(succeeded('Test'), eq(variables['Build.SourceBranchName'], 'master'))
+    condition: and(succeeded('Validation'), eq(variables['Build.SourceBranchName'], 'master'))
     displayName: Deploy Shared azdo Services to Poc
     jobs:
       - template: /Deploy/deploystage.infra.yml
