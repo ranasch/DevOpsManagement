@@ -12,7 +12,7 @@ trigger:
 variables:
   - group: azdo-dev
   - name: devServiceConnection
-    value: DevOpsAutomationSC
+    value: DevStageServiceConnection
   - name: pocEnvironment
     value: PocServiceConnection
   - name: vmImageName
