@@ -110,7 +110,7 @@ jobs:
                   if($currentConnectionString -ne $storageConnectionString) {
                     az keyvault secret set --vault-name "$(kvName)" --name "WebJobStorage" --value "$storageConnectionString"
                   }
-                  $currentPAT=az keyvault secret show --vault-name azd1-test --name "PAT" --query value -o tsv
+                  $currentPAT=az keyvault secret show --vault-name "$(kvName)" --name "PAT" --query value -o tsv
                   if($currentPAT -ne "$(PAT)") {
                     az keyvault secret set --vault-name "$(kvName)" --name "PAT" --value "$(PAT)"
                   }
