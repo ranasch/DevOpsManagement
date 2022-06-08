@@ -102,7 +102,7 @@ jobs:
                   echo "Grant access"
                   $sp=az account show --query user.name
                   $principalObjectId=az ad sp show --id $sp --query id
-                  az keyvault set-policy -n $(kvName) --secret-permissions set --object-id $principalObjectId
+                  az keyvault set-policy -n $(kvName) --secret-permissions get set --object-id $principalObjectId
                   
                   echo Add secrets
                   $storageConnectionString=az storage account show-connection-string --name $(storageName) --query connectionString
